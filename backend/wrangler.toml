@@ -1,0 +1,15 @@
+name = "pos-backend"
+main = "src/index.ts"
+compatibility_date = "2024-05-12"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "pos_db"
+# Replace database_id with the one generated after running `wrangler d1 create pos_db`
+database_id = "086963ff-1b80-4c68-a335-afc227a9a778"
+
+# KV Namespace for Scanner Sessions
+[[kv_namespaces]]
+binding = "SCANNER_KV"
+id = "fa7025ae6bb043bd9549479ba8c8e9ee"

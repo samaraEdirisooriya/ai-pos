@@ -1,0 +1,17 @@
+{
+  "name": "pos-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "db:init:local": "wrangler d1 execute pos_db --local --file=./schema.sql",
+    "db:init:remote": "wrangler d1 execute pos_db --remote --file=./schema.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240512.0",
+    "typescript": "^5.0.4",
+    "wrangler": "^3.57.1"
+  }
+}
