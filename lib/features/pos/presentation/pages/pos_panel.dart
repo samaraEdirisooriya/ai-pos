@@ -33,7 +33,7 @@ class PosPanel extends StatelessWidget {
               child: SingleChildScrollView(
                 controller: scrollController,
                 child: Container(
-                  height: MediaQuery.of(context).size.height * 0.9 - 81, // Approximate available height
+                  height: (MediaQuery.of(context).size.height * 0.9 - 81).clamp(0.0, double.infinity), // Clamped: never negative
                   padding: const EdgeInsets.all(AppConstants.paddingLarge),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,

@@ -7,49 +7,54 @@ class AiChatPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('AI Assistant',
-            style: GoogleFonts.inter(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Colors.white)),
-        const SizedBox(height: 4),
-        Text('Ask Lanka AI anything about your POS system',
-            style: GoogleFonts.inter(fontSize: 13, color: Colors.white70)),
-        const SizedBox(height: 16),
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    children: [
-                      _bubble(context,
-                          'Hello Admin! I am Lanka AI. How can I assist you with your POS system today?',
-                          true),
-                      _bubble(context,
-                          'Can you show me the sales prediction for next week?',
-                          false),
-                      _bubble(context,
-                          'Based on historical data and current trends, next week\'s sales are predicted to increase by 15%. I have generated a detailed chart in your analytics dashboard.',
-                          true),
-                    ],
-                  ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxHeight < 200) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('AI Assistant',
+                style: GoogleFonts.inter(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white)),
+            const SizedBox(height: 4),
+            Text('Ask Lanka AI anything about your POS system',
+                style: GoogleFonts.inter(fontSize: 13, color: Colors.white70)),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                const SizedBox(height: 12),
-                _buildInput(),
-              ],
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ListView(
+                        children: [
+                          _bubble(context,
+                              'Hello Admin! I am Lanka AI. How can I assist you with your POS system today?',
+                              true),
+                          _bubble(context,
+                              'Can you show me the sales prediction for next week?',
+                              false),
+                          _bubble(context,
+                              'Based on historical data and current trends, next week\'s sales are predicted to increase by 15%. I have generated a detailed chart in your analytics dashboard.',
+                              true),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildInput(),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      }
     );
   }
 

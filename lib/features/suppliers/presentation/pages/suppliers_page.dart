@@ -76,55 +76,81 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
     super.dispose();
   }
 
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchController,
+      onChanged: (v) => _fetchSuppliers(q: v),
+      style: GoogleFonts.inter(color: Colors.white),
+      cursorColor: Colors.white,
+      decoration: InputDecoration(
+        hintText: 'Search suppliers...',
+        hintStyle: GoogleFonts.inter(color: Colors.white38),
+        prefixIcon: const Icon(Icons.search, color: Colors.white38),
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.05),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+      ),
+    );
+  }
+
+  Widget _buildAddButton() {
+    return ElevatedButton.icon(
+      onPressed: _openAddSupplier,
+      icon: const Icon(Icons.person_add, color: Colors.black),
+      label: Text('Add Supplier', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isMobile = constraints.maxWidth < 600;
+
+        Widget headerContent = Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Row(children: [
-            Expanded(
-              child: TextField(
-                controller: _searchController,
-                onChanged: (v) => _fetchSuppliers(q: v),
-                style: GoogleFonts.inter(color: Colors.white),
-                cursorColor: Colors.white,
-                decoration: InputDecoration(
-                  hintText: 'Search suppliers...',
-                  hintStyle: GoogleFonts.inter(color: Colors.white38),
-                  prefixIcon: const Icon(Icons.search, color: Colors.white38),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.05),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+          child: isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildSearchField(),
+                    const SizedBox(height: 12),
+                    _buildAddButton(),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: _buildSearchField()),
+                    const SizedBox(width: 12),
+                    _buildAddButton(),
+                  ],
                 ),
-              ),
+        );
+
+        return CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: headerContent,
             ),
-            const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: _openAddSupplier,
-              icon: const Icon(Icons.person_add, color: Colors.black),
-              label: Text('Add Supplier', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
-              ),
-            )
-          ]),
-        ),
-          Expanded(
-          child: _loading
+            SliverFillRemaining(
+              hasScrollBody: true,
+              child: _loading
             ? GridView.builder(
                 padding: const EdgeInsets.all(24),
                 // Compact cards: similar sizing to product/stock cards for responsiveness
@@ -202,6 +228,8 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
               ),
         ),
       ],
+    );
+      },
     );
   }
 

@@ -55,10 +55,11 @@ class _PosProductsGridState extends State<PosProductsGrid> {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            if (constraints.maxHeight < 80 || constraints.maxWidth < 60) {
+            if (constraints.maxHeight < 10 || constraints.maxWidth < 10) {
               return const SizedBox.shrink();
             }
-            return Column(
+            return ListView(
+              padding: EdgeInsets.zero,
               children: [
                 _buildSearchBar(isMobile),
                 const SizedBox(height: 8),
@@ -67,62 +68,75 @@ class _PosProductsGridState extends State<PosProductsGrid> {
                   child: _buildCategories(isMobile),
                 ),
                 const SizedBox(height: 8),
-                if (_mostUsed.isNotEmpty) _buildMostUsed(isMobile),
+                if (_mostUsed.isNotEmpty) ...[
+                  _buildMostUsed(isMobile),
+                  const SizedBox(height: 8),
+                ],
                 const SizedBox(height: 8),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: _loading && _products.isEmpty
-                      ? GridView.builder(
-                          padding: EdgeInsets.zero,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: isMobile ? 160 : 220,
-                            childAspectRatio: isMobile ? 0.95 : 1.05,
-                            crossAxisSpacing: isMobile ? 8 : 12,
-                            mainAxisSpacing: isMobile ? 8 : 12,
-                          ),
-                          itemCount: 8,
-                          itemBuilder: (context, index) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.03),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
-                              ),
-                              padding: const EdgeInsets.all(8),
-                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Container(height: isMobile ? 40 : 50, color: Colors.white.withValues(alpha: 0.02)),
-                                const SizedBox(height: 8),
-                                Container(height: 10, width: double.infinity, color: Colors.white.withValues(alpha: 0.02)),
-                                const SizedBox(height: 6),
-                                Container(height: 12, width: 60, color: Colors.white.withValues(alpha: 0.02)),
-                              ]),
-                            );
-                          },
-                        )
-                      : GridView.builder(
-                          padding: EdgeInsets.zero,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: isMobile ? 120 : 160,
-                            childAspectRatio: isMobile ? 0.85 : 0.9,
-                            crossAxisSpacing: isMobile ? 6 : 8,
-                            mainAxisSpacing: isMobile ? 6 : 8,
-                          ),
-                          itemCount: _products.length,
-                          itemBuilder: (context, index) {
-                            // lazy load next page
-                            if (index >= _products.length - 4 && _products.length < _total) {
-                              _fetchProducts(loadMore: true);
-                            }
-                            return _draggableCard(_products[index], isMobile);
-                          },
+                _loading && _products.isEmpty
+                    ? GridView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: isMobile ? 160 : 220,
+                          childAspectRatio: isMobile ? 0.95 : 1.05,
+                          crossAxisSpacing: isMobile ? 8 : 12,
+                          mainAxisSpacing: isMobile ? 8 : 12,
                         ),
-                  ),
-                ),
+                        itemCount: 8,
+                        itemBuilder: (context, index) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.04)),
+                            ),
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                      height: isMobile ? 40 : 50,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.02)),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                      height: 10,
+                                      width: double.infinity,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.02)),
+                                  const SizedBox(height: 6),
+                                  Container(
+                                      height: 12,
+                                      width: 60,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.02)),
+                                ]),
+                          );
+                        },
+                      )
+                    : GridView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: isMobile ? 120 : 160,
+                          childAspectRatio: isMobile ? 0.85 : 0.9,
+                          crossAxisSpacing: isMobile ? 6 : 8,
+                          mainAxisSpacing: isMobile ? 6 : 8,
+                        ),
+                        itemCount: _products.length,
+                        itemBuilder: (context, index) {
+                          // lazy load next page
+                          if (index >= _products.length - 4 &&
+                              _products.length < _total) {
+                            _fetchProducts(loadMore: true);
+                          }
+                          return _draggableCard(_products[index], isMobile);
+                        },
+                      ),
               ],
             );
           },
@@ -136,6 +150,12 @@ class _PosProductsGridState extends State<PosProductsGrid> {
     super.initState();
     _fetchMostUsed();
     _fetchProducts();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchMostUsed() async {
@@ -160,7 +180,7 @@ class _PosProductsGridState extends State<PosProductsGrid> {
           }
         } catch (_) {}
       }
-      setState(() { _mostUsed = items; });
+      if (mounted) setState(() { _mostUsed = items; });
     } catch (_) {}
   }
 
@@ -178,15 +198,17 @@ class _PosProductsGridState extends State<PosProductsGrid> {
           final model = ProductModel.fromJson(Map<String, dynamic>.from(e));
           return POSItem(id: model.productId, name: model.name, price: model.sellingValue, imageUrl: model.productUrl);
         }).toList();
-        setState(() {
-          _products.addAll(mapped);
-          _page += 1;
-        });
+        if (mounted) {
+          setState(() {
+            _products.addAll(mapped);
+            _page += 1;
+          });
+        }
       }
     } catch (e) {
       // ignore
     } finally {
-      setState(() { _loading = false; });
+      if (mounted) setState(() { _loading = false; });
     }
   }
 
@@ -297,16 +319,17 @@ class _PosProductsGridState extends State<PosProductsGrid> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: double.infinity,
-            height: isMobile ? 70 : 100,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.image,
+                  size: isMobile ? 28 : 36,
+                  color: Colors.white24),
             ),
-            child: Icon(Icons.image,
-                size: isMobile ? 28 : 36,
-                color: Colors.white24),
           ),
           const SizedBox(height: 4),
             ConstrainedBox(

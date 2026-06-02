@@ -534,160 +534,192 @@ class _StocksPageState extends State<StocksPage> {
     _addStockOpen = false;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header & Search
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: BlocBuilder<StocksBloc, StocksState>(
-                  builder: (context, state) {
-                    List<StockItem> availableStocks = [];
-                    if (state is StocksLoaded) availableStocks = state.stocks;
+  Widget _buildSearchBar() {
+    return BlocBuilder<StocksBloc, StocksState>(
+      builder: (context, state) {
+        List<StockItem> availableStocks = [];
+        if (state is StocksLoaded) availableStocks = state.stocks;
 
-                    return RawAutocomplete<StockItem>(
-                      textEditingController: _searchController,
-                      focusNode: _searchFocusNode,
-                      optionsBuilder: (TextEditingValue textEditingValue) {
-                         if (textEditingValue.text.isEmpty) {
-                           return const Iterable<StockItem>.empty();
-                         }
-                         return availableStocks.where((StockItem option) {
-                           return option.name.toLowerCase().contains(textEditingValue.text.toLowerCase());
-                         });
-                      },
-                      onSelected: (StockItem selection) {
-                         _searchController.text = selection.name;
-                         _fetchStocks(query: selection.name);
-                      },
-                      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                        return TextField(
-                          controller: controller,
-                          focusNode: focusNode,
-                          style: GoogleFonts.inter(color: Colors.white),
-                          onSubmitted: (value) => _fetchStocks(query: value),
-                          onChanged: (value) => _fetchStocks(query: value),
-                          decoration: InputDecoration(
-                            hintText: 'Search stock by name...',
-                            hintStyle: GoogleFonts.inter(color: Colors.white54),
-                            prefixIcon: const Icon(Icons.search, color: Colors.white54),
-                            filled: true,
-                            fillColor: Colors.white.withValues(alpha: 0.1),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                          ),
-                        );
-                      },
-                      optionsViewBuilder: (context, onSelected, options) {
-                        return Align(
-                          alignment: Alignment.topLeft,
-                          child: Material(
-                            elevation: 8.0,
-                            color: AppColors.secondary,
-                            borderRadius: BorderRadius.circular(12),
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
-                              child: ListView.builder(
-                                padding: const EdgeInsets.all(8),
-                                shrinkWrap: true,
-                                itemCount: options.length,
-                                itemBuilder: (BuildContext context, int index) {
-                                  final StockItem option = options.elementAt(index);
-                                  return InkWell(
-                                    onTap: () => onSelected(option),
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Text(option.name, style: GoogleFonts.inter(color: Colors.white)),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  }
+        return RawAutocomplete<StockItem>(
+          textEditingController: _searchController,
+          focusNode: _searchFocusNode,
+          optionsBuilder: (TextEditingValue textEditingValue) {
+             if (textEditingValue.text.isEmpty) {
+               return const Iterable<StockItem>.empty();
+             }
+             return availableStocks.where((StockItem option) {
+               return option.name.toLowerCase().contains(textEditingValue.text.toLowerCase());
+             });
+          },
+          onSelected: (StockItem selection) {
+             _searchController.text = selection.name;
+             _fetchStocks(query: selection.name);
+          },
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              style: GoogleFonts.inter(color: Colors.white),
+              onSubmitted: (value) => _fetchStocks(query: value),
+              onChanged: (value) => _fetchStocks(query: value),
+              decoration: InputDecoration(
+                hintText: 'Search stock by name...',
+                hintStyle: GoogleFonts.inter(color: Colors.white54),
+                prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.1),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                 ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
               ),
-              const SizedBox(width: 16),
-              
-              // Glassmorphism Scan Button
-              ClipRRect(
+            );
+          },
+          optionsViewBuilder: (context, onSelected, options) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 8.0,
+                color: AppColors.secondary,
                 borderRadius: BorderRadius.circular(12),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: InkWell(
-                    onTap: () {
-                      _openCloudScanner();
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(8),
+                    shrinkWrap: true,
+                    itemCount: options.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final StockItem option = options.elementAt(index);
+                      return InkWell(
+                        onTap: () => onSelected(option),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(option.name, style: GoogleFonts.inter(color: Colors.white)),
+                        ),
+                      );
                     },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                      ),
-                      child: const Icon(Icons.qr_code_scanner, color: Colors.white),
-                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              // Pending scans indicator (outside dialog shimmer)
-              ValueListenableBuilder<int>(
-                valueListenable: ActiveScanner.pendingCount,
-                builder: (context, count, _) {
-                  if (count <= 0) return const SizedBox.shrink();
-                  return Row(
-                    children: [
-                      const SizedBox(width: 8),
-                      SizedBox(width: 80, child: _ShimmerBox()),
-                      const SizedBox(width: 8),
-                      Text('$count pending', style: GoogleFonts.inter(color: Colors.white70)),
-                    ],
-                  );
-                },
-              ),
-              
-              // Filter/Sort Button
-              ElevatedButton.icon(
-                onPressed: _showSortOptions,
-                icon: const Icon(Icons.sort, color: Colors.black),
-                label: Text('Sort: $_sortOption', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
+            );
+          },
+        );
+      }
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Glassmorphism Scan Button
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: InkWell(
+              onTap: () {
+                _openCloudScanner();
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                 ),
+                child: const Icon(Icons.qr_code_scanner, color: Colors.white),
               ),
-            ],
+            ),
           ),
         ),
+        const SizedBox(width: 12),
+        // Pending scans indicator (outside dialog shimmer)
+        Flexible(
+          child: ValueListenableBuilder<int>(
+            valueListenable: ActiveScanner.pendingCount,
+            builder: (context, count, _) {
+              if (count <= 0) return const SizedBox.shrink();
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(width: 8),
+                  SizedBox(width: 80, child: _ShimmerBox()),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text('$count pending', style: GoogleFonts.inter(color: Colors.white70), overflow: TextOverflow.ellipsis),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        
+        // Filter/Sort Button
+        Flexible(
+          child: ElevatedButton.icon(
+            onPressed: _showSortOptions,
+            icon: const Icon(Icons.sort, color: Colors.black),
+            label: Text('Sort: $_sortOption', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black), overflow: TextOverflow.ellipsis),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
-        // Stocks List
-        Expanded(
-          child: BlocBuilder<StocksBloc, StocksState>(
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isMobile = constraints.maxWidth < 600;
+
+        Widget headerContent = Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          child: isMobile 
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildSearchBar(),
+                  const SizedBox(height: 16),
+                  _buildActionButtons(),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(child: _buildSearchBar()),
+                  const SizedBox(width: 16),
+                  _buildActionButtons(),
+                ],
+              ),
+        );
+
+        return CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: headerContent,
+            ),
+            SliverFillRemaining(
+              hasScrollBody: true,
+              child: BlocBuilder<StocksBloc, StocksState>(
             builder: (context, state) {
               if (state is StocksLoading) {
                 return GridView.builder(
@@ -891,6 +923,8 @@ class _StocksPageState extends State<StocksPage> {
           ),
         ),
       ],
+    );
+      },
     );
   }
 }

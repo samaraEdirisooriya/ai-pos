@@ -49,89 +49,117 @@ class _ClientsPageState extends State<ClientsPage> with SingleTickerProviderStat
     if (res == true) context.read<ClientsBloc>().add(const FetchClients());
   }
 
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchController,
+      onChanged: (v) => context.read<ClientsBloc>().add(FetchClients(query: v)),
+      style: GoogleFonts.inter(color: Colors.white),
+      cursorColor: Colors.white,
+      decoration: InputDecoration(
+        hintText: 'Search clients...',
+        hintStyle: GoogleFonts.inter(color: Colors.white38),
+        prefixIcon: const Icon(Icons.search, color: Colors.white38),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.05),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.06)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.18)),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+      ),
+    );
+  }
+
+  Widget _buildAddButton() {
+    return ElevatedButton.icon(
+      onPressed: _openAddClient,
+      icon: const Icon(Icons.person_add, color: Colors.black),
+      label: Text('Add Client', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black)),
+      style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ClientsBloc, ClientsState>(
-      builder: (context, state) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isMobile = constraints.maxWidth < 600;
+
+        return BlocBuilder<ClientsBloc, ClientsState>(
+          builder: (context, state) {
+            Widget headerContent = Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: Row(children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (v) => context.read<ClientsBloc>().add(FetchClients(query: v)),
-                    style: GoogleFonts.inter(color: Colors.white),
-                    cursorColor: Colors.white,
-                    decoration: InputDecoration(
-                      hintText: 'Search clients...',
-                      hintStyle: GoogleFonts.inter(color: Colors.white38),
-                      prefixIcon: const Icon(Icons.search, color: Colors.white38),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.05),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.06)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.18)),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: _openAddClient,
-                  icon: const Icon(Icons.person_add, color: Colors.black),
-                  label: Text('Add Client', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black)),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                )
-              ]),
-            ),
-            Expanded(
-              child: state.loading && state.clients.isEmpty
-                  ? GridView.builder(
-                      padding: const EdgeInsets.all(24),
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 180, childAspectRatio: 1.5, crossAxisSpacing: 16, mainAxisSpacing: 16),
-                      itemCount: 8,
-                      itemBuilder: (context, index) => _buildShimmerCard(),
-                    )
-                  : Column(
+              child: isMobile
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: GridView.builder(
-                            padding: const EdgeInsets.all(24),
-                            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 180, childAspectRatio: 1.5, crossAxisSpacing: 16, mainAxisSpacing: 16),
-                            itemCount: state.clients.length,
-                            itemBuilder: (context, index) {
-                              final c = state.clients[index];
-                              return InkWell(
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ClientDetailPage(clientId: c['client_id']))),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withOpacity(0.08), width: 1)),
-                                  child: Row(children: [
-                                    Container(width: 56, height: 56, decoration: BoxDecoration(color: Colors.white.withOpacity(0.04), borderRadius: BorderRadius.circular(10)), child: const Center(child: Icon(Icons.person, size: 28, color: Colors.white70))),
-                                    const SizedBox(width: 12),
-                                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(c['name'] ?? '', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 6), Text(c['email'] ?? '-', style: GoogleFonts.inter(color: Colors.white54, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)])),
-                                    const SizedBox(width: 8),
-                                    const Icon(Icons.chevron_right, color: Colors.white54),
-                                  ]),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        if (state.clients.length < state.total)
-                          Padding(padding: const EdgeInsets.only(bottom: 16.0), child: ElevatedButton(onPressed: state.loading ? null : () => context.read<ClientsBloc>().add(LoadMoreClients()), child: state.loading ? const SizedBox(width:16,height:16,child:CircularProgressIndicator(strokeWidth:2)) : Text('Load more')))
+                        _buildSearchField(),
+                        const SizedBox(height: 12),
+                        _buildAddButton(),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(child: _buildSearchField()),
+                        const SizedBox(width: 12),
+                        _buildAddButton(),
                       ],
                     ),
-            )
-          ],
+            );
+
+            return CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: headerContent,
+                ),
+                SliverFillRemaining(
+                  hasScrollBody: true,
+                  child: state.loading && state.clients.isEmpty
+                      ? GridView.builder(
+                          padding: const EdgeInsets.all(24),
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 180, childAspectRatio: 1.5, crossAxisSpacing: 16, mainAxisSpacing: 16),
+                          itemCount: 8,
+                          itemBuilder: (context, index) => _buildShimmerCard(),
+                        )
+                      : Column(
+                          children: [
+                            Expanded(
+                              child: GridView.builder(
+                                padding: const EdgeInsets.all(24),
+                                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 180, childAspectRatio: 1.5, crossAxisSpacing: 16, mainAxisSpacing: 16),
+                                itemCount: state.clients.length,
+                                itemBuilder: (context, index) {
+                                  final c = state.clients[index];
+                                  return InkWell(
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ClientDetailPage(clientId: c['client_id']))),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withOpacity(0.08), width: 1)),
+                                      child: Row(children: [
+                                        Container(width: 56, height: 56, decoration: BoxDecoration(color: Colors.white.withOpacity(0.04), borderRadius: BorderRadius.circular(10)), child: const Center(child: Icon(Icons.person, size: 28, color: Colors.white70))),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(c['name'] ?? '', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 6), Text(c['email'] ?? '-', style: GoogleFonts.inter(color: Colors.white54, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)])),
+                                        const SizedBox(width: 8),
+                                        const Icon(Icons.chevron_right, color: Colors.white54),
+                                      ]),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            if (state.clients.length < state.total)
+                              Padding(padding: const EdgeInsets.only(bottom: 16.0), child: ElevatedButton(onPressed: state.loading ? null : () => context.read<ClientsBloc>().add(LoadMoreClients()), child: state.loading ? const SizedBox(width:16,height:16,child:CircularProgressIndicator(strokeWidth:2)) : Text('Load more')))
+                          ],
+                        ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

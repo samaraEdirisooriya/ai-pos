@@ -35,12 +35,12 @@ class _PosCartSectionState extends State<PosCartSection> {
         
         return LayoutBuilder(
           builder: (context, constraints) {
-            if (constraints.maxHeight < 80 || constraints.maxWidth < 60) {
+            if (constraints.maxHeight < 10 || constraints.maxWidth < 10) {
               return const SizedBox.shrink();
             }
             
-            // Apply 652px minimum height only on desktop/web
-            final shouldApplyMinHeight = isDesktopOrWeb && constraints.maxHeight < 652;
+            // Apply minimum height only on desktop/web if height is very small
+            final shouldApplyMinHeight = isDesktopOrWeb && constraints.maxHeight < 10;
             
             return DragTarget<Product>(
               onAcceptWithDetails: (details) {
@@ -59,16 +59,19 @@ class _PosCartSectionState extends State<PosCartSection> {
                          
                         Column(
                           children: [
-                           MediaQuery.of(context).size.height<660?SizedBox() :_header(context),
+                            constraints.maxHeight < 10 ? const SizedBox() : _header(context),
                             Divider(color: Colors.white.withValues(alpha: 0.15), height: 1),
                             Expanded(
-                              child: shouldApplyMinHeight 
-                                ? SingleChildScrollView(
-                                    child: _buildCartContent(context),
-                                  )
-                                : _buildCartContent(context),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(minHeight: 0),
+                                child: shouldApplyMinHeight 
+                                  ? SingleChildScrollView(
+                                      child: _buildCartContent(context),
+                                    )
+                                  : _buildCartContent(context),
+                              ),
                             ),
-                            MediaQuery.of(context).size.height<660?SizedBox() : _totals(context),
+                            constraints.maxHeight < 10 ? const SizedBox() : _totals(context, constraints.maxHeight < 500),
                           ],
                         ),
                         if (isDragging)
@@ -181,20 +184,25 @@ class _PosCartSectionState extends State<PosCartSection> {
       builder: (context, state) {
         if (state.cartItems.isEmpty) {
           return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(height: 20,),
-                const Icon(Icons.shopping_cart_checkout,
-                    size: 36, color: Colors.white24),
-                const SizedBox(height: 8),
-                Text('Cart is empty',
-                    style: GoogleFonts.inter(
-                        fontSize: 12, color: Colors.white38)),
-                Text('Drag products here',
-                    style: GoogleFonts.inter(
-                        fontSize: 10, color: Colors.white24)),
-              ],
+            child: SingleChildScrollView(
+              child: Container(
+                height: 200,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(height: 20,),
+                    const Icon(Icons.shopping_cart_checkout,
+                        size: 36, color: Colors.white24),
+                    const SizedBox(height: 8),
+                    Text('Cart is empty',
+                        style: GoogleFonts.inter(
+                            fontSize: 12, color: Colors.white38)),
+                    Text('Drag products here',
+                        style: GoogleFonts.inter(
+                            fontSize: 10, color: Colors.white24)),
+                  ],
+                ),
+              ),
             ),
           );
         }
@@ -289,15 +297,7 @@ class _PosCartSectionState extends State<PosCartSection> {
     );
   }
 
-  Widget _totals(BuildContext context) {
-    return ResponsiveBuilder(
-      builder: (context, sizingInformation) {
-        final isDesktopOrWeb = sizingInformation.isDesktop || sizingInformation.isTablet;
-        
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final isSmallHeight = isDesktopOrWeb && constraints.maxHeight < 652;
-            
+  Widget _totals(BuildContext context, bool isSmallHeight) {
             if (isSmallHeight) {
               // Compact view for small screens on desktop/web
               return Container(
@@ -447,10 +447,6 @@ class _PosCartSectionState extends State<PosCartSection> {
                 },
               ),
             );
-          },
-        );
-      },
-    );
   }
 
   void _showProcessingDialog(BuildContext context) {

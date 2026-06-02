@@ -89,119 +89,144 @@ class _MainLayoutPageState extends State<MainLayoutPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: ResponsiveBuilder(
-        builder: (context, sizingInformation) {
-          bool isMobile =
-              sizingInformation.deviceScreenType == DeviceScreenType.mobile;
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxHeight < 10) return const SizedBox.shrink();
+          return ResponsiveBuilder(
+            builder: (context, sizingInformation) {
+              bool isMobile =
+                  sizingInformation.deviceScreenType == DeviceScreenType.mobile;
+              final topNavH = isMobile ? 56.0 : 64.0;
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // ── MAIN AREA (Content & Side Nav) ──
+                  Positioned(
+                    top: topNavH,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Side Nav (hidden on mobile)
+                        if (!isMobile)
+                          SizedBox(
+                            width: 60,
+                            child: _buildSideNav(),
+                          ),
 
-          return Column(
-            children: [
-              // ── TOP NAV (always visible) ──
-              _buildTopNav(isMobile),
+                        // Content area
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final maxH = constraints.maxHeight;
+                              // Use fixed minimum heights to prevent internal content scaling/errors
+                              final minH = isMobile ? 180.0 : 320.0;
+                              
+                              // halfH logic: try to split, but never go below minH
+                              final halfH = max(minH, maxH * 0.5);
+                              
+                              // target default: depends on screen state, but respects minH
+                              final targetDefaultH = _isFullScreen ? max(maxH, minH) : halfH;
+                              
+                              // The panel height: uses manual drag height if set, otherwise defaults to full or half.
+                              // It is NO LONGER clamped to maxH, allowing it to "overlap" when the screen is small.
+                              final currentH = (_panelCurrentHeight ?? targetDefaultH).clamp(minH, double.infinity);
 
-              // ── MAIN AREA ──
-              Expanded(
-                child: Row(
-                  children: [
-                    // Side Nav (hidden on mobile)
-                    if (!isMobile) _buildSideNav(),
+                              return Stack(
+                                clipBehavior: Clip.none, // Essential to allow overlapping/sliding "behind" or above boundaries
+                                children: [
+                                  // ── FIXED DASHBOARD TOP (behind the panel) ──
+                                  Positioned.fill(
+                                    // Ensure bottom pinning doesn't exceed screen size to avoid layout errors
+                                    bottom: currentH.clamp(0.0, max(0.0, maxH)),
+                                    child: _buildDashboardTop(context, isMobile),
+                                  ),
 
-                    // Content area
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final maxH = constraints.maxHeight;
-                          final halfH = maxH * 0.55; // 55% open by default
-                          final currentH = _panelCurrentHeight ?? (_isFullScreen ? maxH : halfH);
-
-                          return Stack(
-                            children: [
-                              // ── FIXED DASHBOARD TOP (behind the panel) ──
-                              Positioned.fill(
-                                bottom: currentH,
-                                child: _buildDashboardTop(context, isMobile),
-                              ),
-
-                              // ── DRAGGABLE GRADIENT BOTTOM PANEL ──
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                height: currentH,
-                                child: GestureDetector(
-                                  onVerticalDragUpdate: (details) {
-                                    setState(() {
-                                      final newH = currentH - details.delta.dy;
-                                      // Clamp so it cannot go below halfH
-                                      _panelCurrentHeight = newH.clamp(halfH, maxH);
-                                      _isFullScreen = _panelCurrentHeight! >= maxH - 20;
-                                    });
-                                  },
-                                  onVerticalDragEnd: (details) {
-                                    // Snap logic based on velocity and small movement
-                                    setState(() {
-                                      final velocity = details.primaryVelocity ?? 0.0;
-                                      
-                                      // Dragged up with velocity OR moved more than 50px up
-                                      if (velocity < -200 || currentH > halfH + 50) {
-                                        _isFullScreen = true;
-                                        _panelCurrentHeight = maxH;
-                                      } 
-                                      // Dragged down with velocity OR moved more than 50px down from max
-                                      else if (velocity > 200 || currentH < maxH - 50) {
-                                        _isFullScreen = false;
-                                        _panelCurrentHeight = halfH;
-                                      } 
-                                      // Otherwise snap to nearest
-                                      else {
-                                        if ((currentH - halfH) > (maxH - currentH)) {
-                                          _isFullScreen = true;
-                                          _panelCurrentHeight = maxH;
-                                        } else {
-                                          _isFullScreen = false;
-                                          _panelCurrentHeight = halfH;
-                                        }
-                                      }
-                                    });
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeOutCubic,
-                                    decoration: const BoxDecoration(
-                                      borderRadius: BorderRadius.only(
-                                        topLeft: Radius.circular(24),
-                                        topRight: Radius.circular(24),
-                                      ),
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          AppColors.secondary,
-                                          AppColors.secondaryMid,
-                                          AppColors.secondaryEnd,
-                                        ],
-                                      ),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        _buildPanelHandle(),
-                                        Expanded(
-                                          child: _buildPanelContent(),
+                                  // ── DRAGGABLE GRADIENT BOTTOM PANEL ──
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    height: currentH,
+                                    child: GestureDetector(
+                                      onVerticalDragUpdate: (details) {
+                                        setState(() {
+                                          final newH = currentH - details.delta.dy;
+                                          _panelCurrentHeight = newH.clamp(minH, double.infinity);
+                                          _isFullScreen = _panelCurrentHeight! >= maxH - 20;
+                                        });
+                                      },
+                                      onVerticalDragEnd: (details) {
+                                        setState(() {
+                                          final velocity = details.primaryVelocity ?? 0.0;
+                                          final snapFullH = max(maxH, minH);
+                                          if (velocity < -200 || currentH > halfH + 50) {
+                                            _isFullScreen = true;
+                                            _panelCurrentHeight = snapFullH;
+                                          } else if (velocity > 200 || currentH < snapFullH - 50) {
+                                            _isFullScreen = false;
+                                            _panelCurrentHeight = halfH;
+                                          } else {
+                                            if ((currentH - halfH) > (snapFullH - currentH)) {
+                                              _isFullScreen = true;
+                                              _panelCurrentHeight = snapFullH;
+                                            } else {
+                                              _isFullScreen = false;
+                                              _panelCurrentHeight = halfH;
+                                            }
+                                          }
+                                        });
+                                      },
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 300),
+                                        curve: Curves.easeOutCubic,
+                                        decoration: const BoxDecoration(
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(24),
+                                            topRight: Radius.circular(24),
+                                          ),
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              AppColors.secondary,
+                                              AppColors.secondaryMid,
+                                              AppColors.secondaryEnd,
+                                            ],
+                                          ),
                                         ),
-                                      ],
+                                        child: Column(
+                                          children: [
+                                            _buildPanelHandle(),
+                                            Expanded(
+                                              child: _buildPanelContent(),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                  // ── TOP NAV (always visible & on top) ──
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: topNavH,
+                    child: _buildTopNav(isMobile),
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
@@ -355,7 +380,7 @@ class _MainLayoutPageState extends State<MainLayoutPage>
             color: AppColors.textSecondary,
           ),
         ),
-        const Spacer(),
+        const SizedBox(width: 16),
 
         // ── CENTER PILL BAR ──
         Expanded(
@@ -412,19 +437,22 @@ class _MainLayoutPageState extends State<MainLayoutPage>
             onPressed: () {},
             iconSize: 20),
         const SizedBox(width: 8),
-        Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text('Admin User',
-                style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary)),
-            Text('Manager',
-                style: GoogleFonts.inter(
-                    fontSize: 10, color: AppColors.textSecondary)),
-          ],
+        Flexible(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Admin User',
+                  style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary), overflow: TextOverflow.ellipsis),
+              Text('Manager',
+                  style: GoogleFonts.inter(
+                      fontSize: 10, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
+            ],
+          ),
         ),
         const SizedBox(width: 8),
         const CircleAvatar(
@@ -829,23 +857,29 @@ class _MainLayoutPageState extends State<MainLayoutPage>
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  SizedBox(width: 24),
-                  Icon(_selectedModule.icon,
-                      color: const Color.fromARGB(192, 255, 255, 255), size: isMobile ? 18 : 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    _selectedModule.label,
-                    style: GoogleFonts.inter(
-                        fontSize: isMobile ? 14 : 18,
-                        fontWeight: FontWeight.w600,
-                        color: const Color.fromARGB(157, 255, 255, 255)),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+              Positioned(
+                left: 0,
+                right: 80,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    const SizedBox(width: 24),
+                    Icon(_selectedModule.icon,
+                        color: const Color.fromARGB(192, 255, 255, 255), size: isMobile ? 18 : 20),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        _selectedModule.label,
+                        style: GoogleFonts.inter(
+                            fontSize: isMobile ? 14 : 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color.fromARGB(157, 255, 255, 255)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               Positioned(
                 top: 8,
@@ -962,7 +996,7 @@ class _MainLayoutPageState extends State<MainLayoutPage>
             style: GoogleFonts.inter(
                 fontSize: 14, color: Colors.white70)),
         const SizedBox(height: 24),
-        Expanded(
+        Flexible(
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.08),

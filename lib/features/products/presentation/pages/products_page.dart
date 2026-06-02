@@ -46,132 +46,161 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 
+  Widget _buildSearchBar() {
+    return BlocBuilder<ProductBloc, ProductState>(
+      builder: (context, state) {
+        List<Product> availableProducts = [];
+        if (state is ProductLoaded) availableProducts = state.products;
+
+        return RawAutocomplete<Product>(
+          textEditingController: _searchCtrl,
+          focusNode: _searchFocusNode,
+          optionsBuilder: (TextEditingValue textEditingValue) {
+             if (textEditingValue.text.isEmpty) {
+               return const Iterable<Product>.empty();
+             }
+             return availableProducts.where((Product option) {
+               return option.name.toLowerCase().contains(textEditingValue.text.toLowerCase());
+             });
+          },
+          onSelected: (Product selection) {
+             _searchCtrl.text = selection.name;
+             _onSearch(selection.name);
+          },
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              onChanged: _onSearch,
+              style: GoogleFonts.inter(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Search products...',
+                hintStyle: GoogleFonts.inter(color: Colors.white38),
+                prefixIcon: const Icon(Icons.search, color: Colors.white38),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+              ),
+            );
+          },
+          optionsViewBuilder: (context, onSelected, options) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 8.0,
+                color: AppColors.secondary,
+                borderRadius: BorderRadius.circular(12),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(8),
+                    shrinkWrap: true,
+                    itemCount: options.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final Product option = options.elementAt(index);
+                      return InkWell(
+                        onTap: () => onSelected(option),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(option.name, style: GoogleFonts.inter(color: Colors.white)),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      }
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Top Bar: Search & Add Button
-        Container(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isMobile = constraints.maxWidth < 600;
+
+        Widget headerContent = Container(
           padding: const EdgeInsets.all(24),
-          child: Row(
-            children: [
-              Text('Products',
-                  style: GoogleFonts.inter(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white)),
-              const SizedBox(width: 24),
-              // Search Bar Responsive Rest
-              Expanded(
-                child: BlocBuilder<ProductBloc, ProductState>(
-                  builder: (context, state) {
-                    List<Product> availableProducts = [];
-                    if (state is ProductLoaded) availableProducts = state.products;
-
-                    return RawAutocomplete<Product>(
-                      textEditingController: _searchCtrl,
-                      focusNode: _searchFocusNode,
-                      optionsBuilder: (TextEditingValue textEditingValue) {
-                         if (textEditingValue.text.isEmpty) {
-                           return const Iterable<Product>.empty();
-                         }
-                         return availableProducts.where((Product option) {
-                           return option.name.toLowerCase().contains(textEditingValue.text.toLowerCase());
-                         });
-                      },
-                      onSelected: (Product selection) {
-                         _searchCtrl.text = selection.name;
-                         _onSearch(selection.name);
-                      },
-                      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                        return TextField(
-                          controller: controller,
-                          focusNode: focusNode,
-                          onChanged: _onSearch,
-                          style: GoogleFonts.inter(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: 'Search products...',
-                            hintStyle: GoogleFonts.inter(color: Colors.white38),
-                            prefixIcon: const Icon(Icons.search, color: Colors.white38),
-                            filled: true,
-                            fillColor: Colors.white.withValues(alpha: 0.05),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                          ),
-                        );
-                      },
-                      optionsViewBuilder: (context, onSelected, options) {
-                        return Align(
-                          alignment: Alignment.topLeft,
-                          child: Material(
-                            elevation: 8.0,
-                            color: AppColors.secondary,
-                            borderRadius: BorderRadius.circular(12),
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
-                              child: ListView.builder(
-                                padding: const EdgeInsets.all(8),
-                                shrinkWrap: true,
-                                itemCount: options.length,
-                                itemBuilder: (BuildContext context, int index) {
-                                  final Product option = options.elementAt(index);
-                                  return InkWell(
-                                    onTap: () => onSelected(option),
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Text(option.name, style: GoogleFonts.inter(color: Colors.white)),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  }
-                ),
+          child: isMobile 
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Products', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ElevatedButton.icon(
+                        onPressed: _showAddProductDialog,
+                        icon: const Icon(Icons.add, color: Colors.black),
+                        label: Text('Add', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSearchBar(),
+                ],
+              )
+            : Row(
+                children: [
+                  Text('Products', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(width: 24),
+                  Expanded(child: _buildSearchBar()),
+                  const SizedBox(width: 16),
+                  ElevatedButton.icon(
+                    onPressed: _showAddProductDialog,
+                    icon: const Icon(Icons.add, color: Colors.black),
+                    label: Text('Add Product', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              // Modern Add Product Button
-              ElevatedButton.icon(
-                onPressed: _showAddProductDialog,
-                icon: const Icon(Icons.add, color: Colors.black),
-                label: Text('Add Product', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-              ),
-            ],
-          ),
-        ),
+        );
 
-        // Product List
-        Expanded(
-          child: BlocBuilder<ProductBloc, ProductState>(
+        return CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: headerContent,
+            ),
+            SliverFillRemaining(
+              hasScrollBody: true,
+              child: BlocBuilder<ProductBloc, ProductState>(
             builder: (context, state) {
               if (state is ProductLoading) {
                 return GridView.builder(
                   padding: const EdgeInsets.all(24),
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 180,
-                    childAspectRatio: 0.85,
+                    childAspectRatio: 0.60,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
@@ -241,7 +270,7 @@ class _ProductsPageState extends State<ProductsPage> {
                   padding: const EdgeInsets.all(24),
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 180,
-                    childAspectRatio: 0.85,
+                    childAspectRatio: 0.60,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
@@ -258,35 +287,37 @@ class _ProductsPageState extends State<ProductsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: double.infinity,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: product.productUrl.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    product.productUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (ctx, err, _) => const Icon(Icons.image, size: 30, color: Colors.white24),
-                                  ),
-                                )
-                              : const Icon(Icons.image, size: 30, color: Colors.white24),
-                          ),
-                          const SizedBox(height: 8),
+                          // Image — flexible, takes up remaining space
                           Expanded(
-                            child: Text(product.name,
-                                style: GoogleFonts.inter(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis),
+                            child: Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: product.productUrl.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      product.productUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (ctx, err, _) => const Icon(Icons.image, size: 24, color: Colors.white24),
+                                    ),
+                                  )
+                                : const Icon(Icons.image, size: 24, color: Colors.white24),
+                            ),
                           ),
+                          const SizedBox(height: 6),
+                          // Product name
+                          Text(product.name,
+                              style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 4),
+                          // Price + QR row
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
@@ -298,11 +329,12 @@ class _ProductsPageState extends State<ProductsPage> {
                                   children: [
                                     Text('LKR ${product.sellingValue.toStringAsFixed(2)}',
                                         style: GoogleFonts.inter(
-                                            fontSize: 14,
+                                            fontSize: 12,
                                             fontWeight: FontWeight.w700,
-                                            color: Colors.white)),
+                                            color: Colors.white),
+                                        overflow: TextOverflow.ellipsis),
                                     if (product.offerHave) ...[
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 2),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                         decoration: BoxDecoration(
@@ -310,7 +342,7 @@ class _ProductsPageState extends State<ProductsPage> {
                                           borderRadius: BorderRadius.circular(4),
                                         ),
                                         child: Text('-${product.offerPercentage.toStringAsFixed(0)}%',
-                                            style: GoogleFonts.inter(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                                            style: GoogleFonts.inter(color: Colors.greenAccent, fontSize: 9, fontWeight: FontWeight.bold)),
                                       ),
                                     ]
                                   ],
@@ -427,5 +459,6 @@ class _ProductsPageState extends State<ProductsPage> {
         ),
       ],
     );
+    });
   }
 }
