@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:toastification/toastification.dart';
@@ -23,18 +23,17 @@ class _AddClientScreenState extends State<AddClientScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
     try {
-      final uri = Uri.parse('https://pos-backend.posai.workers.dev/api/clients');
-      final req = await HttpClient().postUrl(uri);
-      req.headers.set('content-type', 'application/json');
-      req.add(utf8.encode(jsonEncode({
-        'name': _nameCtrl.text.trim(),
-        'email': _emailCtrl.text.trim(),
-        'phone_num': _phoneCtrl.text.trim(),
-        'address': _addressCtrl.text.trim(),
-      })));
-      final resp = await req.close();
-      final body = await resp.transform(utf8.decoder).join();
-      final data = jsonDecode(body);
+      final dio = Dio();
+      final resp = await dio.post(
+        'https://pos-backend.posai.workers.dev/api/clients',
+        data: {
+          'name': _nameCtrl.text.trim(),
+          'email': _emailCtrl.text.trim(),
+          'phone_num': _phoneCtrl.text.trim(),
+          'address': _addressCtrl.text.trim(),
+        },
+      );
+      final data = resp.data;
       if (data != null && data['success'] == true) {
         if (mounted) {
           toastification.show(

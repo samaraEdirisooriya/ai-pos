@@ -213,30 +213,71 @@ class _PosProductsGridState extends State<PosProductsGrid> {
   }
 
   Widget _buildSearchBar(bool isMobile) {
-    return Container(
-      height: isMobile ? 32 : 36,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: TextField(
-        style: GoogleFonts.inter(fontSize: isMobile ? 11 : 12, color: Colors.white),
-        decoration: InputDecoration(
-          hintText: 'Search...',
-          hintStyle: GoogleFonts.inter(fontSize: 11, color: Colors.white38),
-          prefixIcon: const Icon(Icons.search, color: Colors.white38, size: 16),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: isMobile ? 36 : 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TextField(
+              style: GoogleFonts.inter(
+                  fontSize: isMobile ? 13 : 14, color: Colors.white),
+              decoration: InputDecoration(
+                hintText: isMobile ? 'Search...' : 'Search products...',
+                hintStyle:
+                    GoogleFonts.inter(fontSize: 12, color: Colors.white38),
+                prefixIcon:
+                    const Icon(Icons.search, color: Colors.white38, size: 18),
+                border: InputBorder.none,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              onChanged: (v) {
+                _debounce?.cancel();
+                _debounce = Timer(const Duration(milliseconds: 350), () {
+                  _query = v.trim();
+                  _page = 1;
+                  _fetchProducts();
+                });
+              },
+            ),
+          ),
         ),
-        onChanged: (v) {
-          _debounce?.cancel();
-          _debounce = Timer(const Duration(milliseconds: 350), () {
-            _query = v.trim();
-            _page = 1;
-            _fetchProducts();
-          });
-        },
-      ),
+        if (isMobile) ...[
+          const SizedBox(width: 8),
+          Container(
+            height: 36,
+            width: 36,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.filter_list, color: Colors.white, size: 18),
+              onPressed: () {},
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            height: 36,
+            width: 36,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.qr_code_scanner,
+                  color: Colors.white, size: 18),
+              onPressed: () {},
+            ),
+          ),
+        ],
+      ],
     );
   }
 

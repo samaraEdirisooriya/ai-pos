@@ -98,36 +98,41 @@ class PosContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('POS',
-              style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white)),
-          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text('Point of Sale',
+                style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
+          ),
           TabBar(
             indicatorColor: Colors.white,
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white54,
+            indicatorSize: TabBarIndicatorSize.label,
             tabs: [
               Tab(
+                height: 40,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.inventory_2, size: 18),
-                    const SizedBox(width: 6),
+                    const Icon(Icons.inventory_2, size: 16),
+                    const SizedBox(width: 8),
                     Text('Products',
-                        style: GoogleFonts.inter(fontSize: 12)),
+                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
               Tab(
+                height: 40,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.shopping_cart, size: 18),
-                    const SizedBox(width: 6),
+                    const Icon(Icons.shopping_cart, size: 16),
+                    const SizedBox(width: 8),
                     Text('Cart',
-                        style: GoogleFonts.inter(fontSize: 12)),
+                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
@@ -140,8 +145,11 @@ class PosContent extends StatelessWidget {
                 // Products Tab
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
                   ),
                   padding: const EdgeInsets.all(12),
                   child: const PosProductsGrid(),
@@ -149,8 +157,11 @@ class PosContent extends StatelessWidget {
                 // Cart Tab
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
                   ),
                   child: const PosCartSection(),
                 ),

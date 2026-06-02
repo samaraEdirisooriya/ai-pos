@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -32,15 +32,14 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
   }
 
   late AnimationController _shimmerController;
+  final _dio = Dio();
 
   Future<void> _fetchSuppliers({String? q}) async {
     setState(() => _loading = true);
     try {
-      final uri = Uri.parse('https://pos-backend.posai.workers.dev/api/suppliers' + (q != null && q.isNotEmpty ? '?q=${Uri.encodeComponent(q)}&page=1&limit=$_limit' : '?page=$_page&limit=$_limit'));
-      final req = await HttpClient().getUrl(uri);
-      final resp = await req.close();
-      final body = await resp.transform(utf8.decoder).join();
-      final data = jsonDecode(body);
+      final url = 'https://pos-backend.posai.workers.dev/api/suppliers' + (q != null && q.isNotEmpty ? '?q=${Uri.encodeComponent(q)}&page=1&limit=$_limit' : '?page=$_page&limit=$_limit');
+      final resp = await _dio.get(url);
+      final data = resp.data;
       if (data != null && data['success'] == true) {
         final List newItems = List.from(data['data'] ?? []);
         final meta = data['meta'] ?? {};
@@ -152,13 +151,12 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
               hasScrollBody: true,
               child: _loading
             ? GridView.builder(
-                padding: const EdgeInsets.all(24),
-                // Compact cards: similar sizing to product/stock cards for responsiveness
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 180,
-                  childAspectRatio: 1.5,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                padding: EdgeInsets.all(isMobile ? 12 : 24),
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: isMobile ? double.infinity : 200,
+                  childAspectRatio: isMobile ? 3.2 : 1.5,
+                  crossAxisSpacing: isMobile ? 8 : 16,
+                  mainAxisSpacing: isMobile ? 8 : 16,
                 ),
                 itemCount: 8,
                 itemBuilder: (context, index) => _buildShimmerCard(),
@@ -167,8 +165,13 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
                 children: [
                   Expanded(
                     child: GridView.builder(
-                padding: const EdgeInsets.all(24),
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 180, childAspectRatio: 1.5, crossAxisSpacing: 16, mainAxisSpacing: 16),
+                padding: EdgeInsets.all(isMobile ? 12 : 24),
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: isMobile ? double.infinity : 200,
+                  childAspectRatio: isMobile ? 3.2 : 1.5,
+                  crossAxisSpacing: isMobile ? 8 : 16,
+                  mainAxisSpacing: isMobile ? 8 : 16,
+                ),
                       itemCount: _suppliers.length,
                           itemBuilder: (context, index) {
                       final s = _suppliers[index];
@@ -184,13 +187,13 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
                           child: Row(
                             children: [
                               Container(
-                                width: 56,
-                                height: 56,
+                                width: 48,
+                                height: 48,
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.04),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Center(child: Icon(Icons.local_shipping, size: 28, color: Colors.white70)),
+                                child: const Center(child: Icon(Icons.local_shipping, size: 24, color: Colors.white70)),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -198,14 +201,14 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(s['name'] ?? '', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis),
-                                    const SizedBox(height: 6),
+                                    Text(s['name'] ?? '', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    const SizedBox(height: 4),
                                     Text(s['email'] ?? '-', style: GoogleFonts.inter(color: Colors.white54, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                                   ],
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              const Icon(Icons.chevron_right, color: Colors.white54),
+                              const Icon(Icons.chevron_right, color: Colors.white54, size: 18),
                             ],
                           ),
                         ),
@@ -237,40 +240,38 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
     return AnimatedBuilder(
       animation: _shimmerController,
       builder: (context, child) {
-        final shimmerWidth = MediaQuery.of(context).size.width;
-        return SizedBox(
-          height: 120,
-          child: ShaderMask(
-            shaderCallback: (rect) {
-              return LinearGradient(
-                begin: Alignment(-1.0 - (1.0 - _shimmerController.value) * 2, 0),
-                end: Alignment(1.0 + (1.0 - _shimmerController.value) * 2, 0),
-                colors: [Colors.white.withOpacity(0.06), Colors.white.withOpacity(0.18), Colors.white.withOpacity(0.06)],
-                stops: const [0.25, 0.5, 0.75],
-              ).createShader(Rect.fromLTWH(0, 0, shimmerWidth, rect.height));
-            },
-            blendMode: BlendMode.srcATop,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(height: 16, width: 120, color: Colors.white.withOpacity(0.02)),
-                  const SizedBox(height: 12),
-                  Container(height: 12, width: 200, color: Colors.white.withOpacity(0.02)),
-                  const SizedBox(height: 8),
-                  Container(height: 12, width: 150, color: Colors.white.withOpacity(0.02)),
-                  const Spacer(),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Container(height: 12, width: 100, color: Colors.white.withOpacity(0.02)),
-                    Container(height: 12, width: 40, color: Colors.white.withOpacity(0.02)),
-                  ])
-                ],
-              ),
+        return ShaderMask(
+          shaderCallback: (rect) {
+            return LinearGradient(
+              begin: Alignment(-1.0 - (1.0 - _shimmerController.value) * 2, 0),
+              end: Alignment(1.0 + (1.0 - _shimmerController.value) * 2, 0),
+              colors: [Colors.white.withOpacity(0.06), Colors.white.withOpacity(0.18), Colors.white.withOpacity(0.06)],
+              stops: const [0.25, 0.5, 0.75],
+            ).createShader(rect);
+          },
+          blendMode: BlendMode.srcATop,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Container(width: 48, height: 48, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(10))),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(height: 14, width: double.infinity, color: Colors.white.withOpacity(0.05)),
+                      const SizedBox(height: 8),
+                      Container(height: 10, width: 100, color: Colors.white.withOpacity(0.05)),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         );

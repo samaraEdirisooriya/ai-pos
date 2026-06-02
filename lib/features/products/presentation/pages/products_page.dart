@@ -136,30 +136,56 @@ class _ProductsPageState extends State<ProductsPage> {
         final bool isMobile = constraints.maxWidth < 600;
 
         Widget headerContent = Container(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 16 : 24,
+            vertical: isMobile ? 12 : 24,
+          ),
           child: isMobile 
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Products', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                      Text('Products', 
+                          style: GoogleFonts.inter(
+                              fontSize: 20, 
+                              fontWeight: FontWeight.bold, 
+                              color: Colors.white)),
+                      const Spacer(),
                       ElevatedButton.icon(
                         onPressed: _showAddProductDialog,
-                        icon: const Icon(Icons.add, color: Colors.black),
-                        label: Text('Add', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black)),
+                        icon: const Icon(Icons.add, color: Colors.black, size: 16),
+                        label: Text('Add', 
+                            style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600, 
+                                color: Colors.black)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           elevation: 0,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: IconButton(
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(8),
+                          icon: const Icon(Icons.filter_list, color: Colors.white, size: 18),
+                          onPressed: () {},
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   _buildSearchBar(),
                 ],
               )
