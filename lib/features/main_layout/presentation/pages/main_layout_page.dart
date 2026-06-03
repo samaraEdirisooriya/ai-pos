@@ -382,39 +382,6 @@ class _MainLayoutPageState extends State<MainLayoutPage>
         ),
         const SizedBox(width: 16),
 
-        // ── CENTER PILL BAR ──
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Container(
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _pillBtn(Icons.check, 'New Sale', true),
-                  _pillDiv(),
-                  _pillBtn(Icons.refresh, 'Refresh', false),
-                  _pillDiv(),
-                  _pillBtn(Icons.close, 'Cancel', false),
-                  _pillDiv(),
-                  _pillBtn(Icons.inventory, 'Process', false),
-                  _pillDiv(),
-                  _pillBtn(Icons.delete_outline, 'Delete', false),
-                  _pillDiv(),
-                  _pillBtn(Icons.person_add_alt, 'Assign', false),
-                  _pillDiv(),
-                  _pillBtn(Icons.more_horiz, '', false),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-
         // ── RIGHT ICONS ──
         IconButton(
           icon: const Icon(Icons.qr_code),

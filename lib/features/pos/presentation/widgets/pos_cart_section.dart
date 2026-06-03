@@ -275,22 +275,36 @@ class _PosCartSectionState extends State<PosCartSection> {
         GestureDetector(
           onTap: () =>
               context.read<PosBloc>().add(RemoveProductFromCart(item.product)),
-          child: const Icon(Icons.remove_circle_outline,
-              color: Colors.white38, size: 16),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.remove_circle_outline,
+                color: Colors.white38, size: 24),
+          ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text('${item.quantity}',
               style: GoogleFonts.inter(
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: Colors.white)),
         ),
         GestureDetector(
           onTap: () =>
               context.read<PosBloc>().add(AddProductToCart(item.product)),
-          child: const Icon(Icons.add_circle_outline,
-              color: Colors.white, size: 16),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.add_circle_outline,
+                color: Colors.white, size: 24),
+          ),
         ),
       ],
       mainAxisSize: MainAxisSize.min,
@@ -301,22 +315,48 @@ class _PosCartSectionState extends State<PosCartSection> {
             if (isSmallHeight) {
               // Compact view for small screens on desktop/web
               return Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: Colors.white.withValues(alpha: 0.12),
+                  border: const Border(top: BorderSide(color: Colors.white10)),
                 ),
                 child: BlocBuilder<PosBloc, PosState>(
                   builder: (context, state) {
-                    return Center(
-                      child: Text(
-                        'Total: \$${state.total.toStringAsFixed(2)}',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('TOTAL',
+                                style: GoogleFonts.inter(
+                                    fontSize: 10, color: Colors.white54)),
+                            Text(_lkr.format(state.total),
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                )),
+                          ],
                         ),
-                        textAlign: TextAlign.center,
-                      ),
+                        SizedBox(
+                          height: 32,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.primary,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: state.cartItems.isEmpty ? null : () => _handleCharge(context, state),
+                            child: Text('CHARGE',
+                                style: GoogleFonts.inter(
+                                    fontSize: 11, fontWeight: FontWeight.w800)),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -400,43 +440,7 @@ class _PosCartSectionState extends State<PosCartSection> {
                                 borderRadius: BorderRadius.circular(18)),
                             elevation: 0,
                           ),
-                          onPressed: state.cartItems.isEmpty ? null : () async {
-                            final posBloc = context.read<PosBloc>();
-                            _showProcessingDialog(context);
-
-                            try {
-                              final dio = Dio();
-                              final items = state.cartItems.map((ci) => {
-                                'product_id': ci.product.id,
-                                'quantity': ci.quantity,
-                                // set retail_price to 0 to let backend fallback to STOCKS latest prices
-                                'retail_price': 0,
-                                'selling_price': ci.product.price,
-                                'discount_price': 0,
-                              }).toList();
-
-                              final resp = await dio.post('https://pos-backend.posai.workers.dev/api/sales', data: {
-                                'items': items,
-                                'client_id': _selectedClient == null ? null : _selectedClient!['client_id'],
-                                'created_user': 'admin'
-                              });
-
-                              Navigator.of(context, rootNavigator: true).pop(); // close processing
-
-                              final success = resp.statusCode == 201 && resp.data['success'] == true;
-                              if (success) {
-                                posBloc.add(ClearCart());
-                                setState(() { _selectedClient = null; });
-                                await _showResultDialog(context, true, 'Sale recorded');
-                              } else {
-                                final detail = resp.data != null ? resp.data.toString() : 'No body';
-                                await _showResultDialog(context, false, 'Status ${resp.statusCode}: $detail');
-                              }
-                            } catch (e) {
-                              Navigator.of(context, rootNavigator: true).pop();
-                              await _showResultDialog(context, false, '$e');
-                            }
-                          },
+                          onPressed: state.cartItems.isEmpty ? null : () => _handleCharge(context, state),
                           child: Text('Charge',
                               style: GoogleFonts.inter(
                                   fontSize: 13, fontWeight: FontWeight.w700)),
@@ -447,6 +451,49 @@ class _PosCartSectionState extends State<PosCartSection> {
                 },
               ),
             );
+  }
+
+  Future<void> _handleCharge(BuildContext context, PosState state) async {
+    final posBloc = context.read<PosBloc>();
+    _showProcessingDialog(context);
+
+    try {
+      final dio = Dio();
+      final items = state.cartItems.map((ci) => {
+            'product_id': ci.product.id,
+            'quantity': ci.quantity,
+            // set retail_price to 0 to let backend fallback to STOCKS latest prices
+            'retail_price': 0,
+            'selling_price': ci.product.price,
+            'discount_price': 0,
+          }).toList();
+
+      final resp = await dio.post('https://pos-backend.posai.workers.dev/api/sales', data: {
+        'items': items,
+        'client_id': _selectedClient == null ? null : _selectedClient!['client_id'],
+        'created_user': 'admin'
+      });
+
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // close processing
+
+      final success = resp.statusCode == 201 && resp.data['success'] == true;
+      if (success) {
+        posBloc.add(ClearCart());
+        setState(() {
+          _selectedClient = null;
+        });
+        await _showResultDialog(context, true, 'Sale recorded');
+      } else {
+        final detail = resp.data != null ? resp.data.toString() : 'No body';
+        await _showResultDialog(context, false, 'Status ${resp.statusCode}: $detail');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        await _showResultDialog(context, false, '$e');
+      }
+    }
   }
 
   void _showProcessingDialog(BuildContext context) {

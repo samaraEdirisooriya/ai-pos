@@ -90,7 +90,8 @@ export default {
 
         let results;
         if (query) {
-          results = await env.DB.prepare("SELECT * FROM PRODUCTS WHERE name LIKE ? ORDER BY createdAt DESC LIMIT ? OFFSET ?").bind(`%${query}%`, limit, offset).all();
+          // Search by name (partial) OR exact product_key
+          results = await env.DB.prepare("SELECT * FROM PRODUCTS WHERE name LIKE ? OR product_key = ? ORDER BY createdAt DESC LIMIT ? OFFSET ?").bind(`%${query}%`, query, limit, offset).all();
         } else {
           results = await env.DB.prepare("SELECT * FROM PRODUCTS ORDER BY createdAt DESC LIMIT ? OFFSET ?").bind(limit, offset).all();
         }
@@ -98,7 +99,7 @@ export default {
         // total count for meta
         let countRes;
         if (query) {
-          countRes = await env.DB.prepare("SELECT COUNT(1) as c FROM PRODUCTS WHERE name LIKE ?").bind(`%${query}%`).first();
+          countRes = await env.DB.prepare("SELECT COUNT(1) as c FROM PRODUCTS WHERE name LIKE ? OR product_key = ?").bind(`%${query}%`, query).first();
         } else {
           countRes = await env.DB.prepare("SELECT COUNT(1) as c FROM PRODUCTS").first();
         }
