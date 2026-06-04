@@ -202,63 +202,67 @@ class _PosContentState extends State<PosContent> {
     final scannedCode = scanData['code'];
 
     try {
-      // Fetch product info
-      final productUri = Uri.parse(
-          'https://pos-backend.posai.workers.dev/api/products?q=$scannedCode');
-      final pResp = await HttpClient().getUrl(productUri).then((r) => r.close());
-      final pBody = await pResp.transform(utf8.decoder).join();
-      final pData = jsonDecode(pBody);
+      // Try fast lookup by key first (supports full-catalog scans without loading all items)
+      Map<String, dynamic>? item = await _lookupProductRaw(scannedCode);
+      if (item != null) {
+        final posProduct = PosProduct.Product(
+          id: item['product_id'],
+          name: item['name'],
+          category: 'Scanned',
+          price: (item['selling_value'] as num).toDouble(),
+          imageUrl: item['product_url'] ?? '',
+        );
 
-      if (pData['success'] == true && pData['data'] is List) {
-        final List items = pData['data'];
-        if (items.isNotEmpty) {
-          final item = items.first;
-          final posProduct = PosProduct.Product(
-            id: item['product_id'],
-            name: item['name'],
-            category: 'Scanned',
-            price: (item['selling_value'] as num).toDouble(),
-            imageUrl: item['product_url'] ?? '',
-          );
+        if (mounted) {
+          parentContext.read<PosBloc>().add(AddProductToCart(posProduct));
 
-          if (mounted) {
-            parentContext.read<PosBloc>().add(AddProductToCart(posProduct));
-
-            toastification.show(
-              context: parentContext,
-              type: ToastificationType.success,
-              style: ToastificationStyle.flatColored,
-              title: Text('Added to Cart',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-              description: Text('${posProduct.name} added via mobile',
-                  style: GoogleFonts.inter()),
-              alignment: Alignment.topCenter,
-              autoCloseDuration: const Duration(seconds: 2),
-            );
-          }
-
-          // Clean up scan from backend
-          final uriDel = Uri.parse(
-              'https://pos-backend.posai.workers.dev/api/scanner/status/$sessionId/${scanData['id']}');
-          final req = await HttpClient().deleteUrl(uriDel);
-          await req.close();
-        } else {
           toastification.show(
             context: parentContext,
-            type: ToastificationType.error,
+            type: ToastificationType.success,
             style: ToastificationStyle.flatColored,
-            title: Text('Product not found',
+            title: Text('Added to Cart',
                 style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-            description: Text('Code $scannedCode not in database',
+            description: Text('${posProduct.name} added via mobile',
                 style: GoogleFonts.inter()),
             alignment: Alignment.topCenter,
-            autoCloseDuration: const Duration(seconds: 4),
+            autoCloseDuration: const Duration(seconds: 2),
           );
         }
+
+        // Clean up scan from backend
+        final uriDel = Uri.parse(
+            'https://pos-backend.posai.workers.dev/api/scanner/status/$sessionId/${scanData['id']}');
+        final req = await HttpClient().deleteUrl(uriDel);
+        await req.close();
+      } else {
+        toastification.show(
+          context: parentContext,
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          title: Text('Product not found',
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+          description: Text('Code $scannedCode not in database',
+              style: GoogleFonts.inter()),
+          alignment: Alignment.topCenter,
+          autoCloseDuration: const Duration(seconds: 4),
+        );
       }
     } catch (e) {
       debugPrint('Error handling scan: $e');
     }
+  }
+
+  Future<Map<String, dynamic>?> _lookupProductRaw(String key) async {
+    try {
+      final uri = Uri.parse('https://pos-backend.posai.workers.dev/api/products/lookup?key=${Uri.encodeComponent(key)}');
+      final resp = await HttpClient().getUrl(uri).then((r) => r.close());
+      final body = await resp.transform(utf8.decoder).join();
+      final data = jsonDecode(body);
+      if (data != null && data['success'] == true && data['data'] != null) {
+        return Map<String, dynamic>.from(data['data']);
+      }
+    } catch (_) {}
+    return null;
   }
 
   @override

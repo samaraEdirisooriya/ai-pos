@@ -3,6 +3,7 @@ export interface Env {
   SCANNER_KV: KVNamespace;
   VECTORIZE: Vectorize;
   AI: Ai;
+  EMBED_QUEUE?: KVNamespace;
 }
 
 const corsHeaders = {
@@ -18,6 +19,41 @@ function generateRandomKey(length: number = 8): string {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
+}
+
+async function enqueueEmbedding(env: Env, eventId: string) {
+  try {
+    const key = 'embed:queue';
+    const raw = env.EMBED_QUEUE ? await env.EMBED_QUEUE.get(key) : null;
+    let list: string[] = [];
+    if (raw) {
+      try { list = JSON.parse(raw); } catch (_) { list = []; }
+    }
+    list.push(eventId);
+    if (env.EMBED_QUEUE) await env.EMBED_QUEUE.put(key, JSON.stringify(list));
+  } catch (e) {
+    console.warn('Failed to enqueue embedding', e);
+  }
+}
+
+async function dequeueEmbeddingBatch(env: Env, batch: number = 50): Promise<string[]> {
+  try {
+    if (!env.EMBED_QUEUE) return [];
+    const key = 'embed:queue';
+    const raw = await env.EMBED_QUEUE.get(key);
+    let list: string[] = [];
+    if (raw) {
+      try { list = JSON.parse(raw); } catch (_) { list = []; }
+    }
+    if (!list.length) return [];
+    const take = list.slice(0, batch);
+    const remain = list.slice(take.length);
+    await env.EMBED_QUEUE.put(key, JSON.stringify(remain));
+    return take;
+  } catch (e) {
+    console.warn('Failed to dequeue embedding batch', e);
+    return [];
+  }
 }
 
 export default {
@@ -75,28 +111,31 @@ export default {
           `INSERT INTO LIVE_PROFIT (product_id, total_retail_price, total_selling_price, total_discount_price, total_price, total_profit) VALUES (?, ?, ?, ?, ?, ?)`
         ).bind(productId, 0, 0, 0, 0, 0).run();
 
-        // Generate embedding and log AI event for product creation
+        // Generate AI event row for product creation and optionally enqueue embedding
         try {
           const productNarrative = `New product added: "${name}" (${productKey}). Category: ${category || 'General'}. Description: ${description || 'N/A'}. Retail price: ${retail_value}, Selling price: ${selling_value}.`;
-          const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', {
-            text: productNarrative
-          }) as any;
-          const embedding = embeddingResponse.result?.data?.[0]?.embedding || embeddingResponse.data?.[0];
           const eventId = crypto.randomUUID();
           const now = new Date();
           const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-          
           await env.DB.prepare(
             `INSERT INTO AI_EVENTS (event_id, event_type, narrative, metadata, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)`
           ).bind(eventId, 'product_added', productNarrative, JSON.stringify({product_id: productId, product_key: productKey}), now.toISOString(), expiresAt.toISOString()).run();
-          
-          await env.VECTORIZE.upsert([{
-            id: eventId,
-            values: embedding,
-            metadata: { narrative: productNarrative, event_type: 'product_added', product_id: productId }
-          }]);
-        } catch (embedError) {
-          console.warn('Embedding error:', embedError);
+
+          const skip = Boolean(body?.skip_vectorize);
+          if (skip) {
+            await enqueueEmbedding(env, eventId);
+          } else {
+            try {
+              const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', { text: productNarrative }) as any;
+              const embedding = embeddingResponse.result?.data?.[0]?.embedding || embeddingResponse.data?.[0];
+              await env.VECTORIZE.upsert([{ id: eventId, values: embedding, metadata: { narrative: productNarrative, event_type: 'product_added', product_id: productId } }]);
+            } catch (embedError) {
+              console.warn('Embedding error:', embedError);
+              await enqueueEmbedding(env, eventId);
+            }
+          }
+        } catch (embedErrorOuter) {
+          console.warn('Embedding/event error:', embedErrorOuter);
         }
 
         const newProduct = await env.DB.prepare("SELECT * FROM PRODUCTS WHERE product_id = ?").bind(productId).first();
@@ -387,30 +426,33 @@ export default {
           }
         }
 
-        // Log AI event for stock addition
+        // Log AI event for stock addition and optionally enqueue embedding
         try {
           const productInfo = await env.DB.prepare("SELECT name FROM PRODUCTS WHERE product_id = ?").bind(product_id).first();
           const productName = (productInfo as any)?.name || product_id;
           const stockNarrative = `Stock restocked: ${quantity} units of "${productName}" added. Retail price per unit: ${retail_price || 0}. Selling price per unit: ${selling_price || 0}.`;
-          const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', {
-            text: stockNarrative
-          }) as any;
-          const embedding = embeddingResponse.result?.data?.[0]?.embedding || embeddingResponse.data?.[0];
           const eventId = crypto.randomUUID();
           const now = new Date();
           const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-          
           await env.DB.prepare(
             `INSERT INTO AI_EVENTS (event_id, event_type, narrative, metadata, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)`
           ).bind(eventId, 'stock_added', stockNarrative, JSON.stringify({product_id, quantity, retail_price, selling_price}), now.toISOString(), expiresAt.toISOString()).run();
-          
-          await env.VECTORIZE.upsert([{
-            id: eventId,
-            values: embedding,
-            metadata: { narrative: stockNarrative, event_type: 'stock_added', product_id }
-          }]);
-        } catch (embedError) {
-          console.warn('Embedding error:', embedError);
+
+          const skip = Boolean(body?.skip_vectorize);
+          if (skip) {
+            await enqueueEmbedding(env, eventId);
+          } else {
+            try {
+              const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', { text: stockNarrative }) as any;
+              const embedding = embeddingResponse.result?.data?.[0]?.embedding || embeddingResponse.data?.[0];
+              await env.VECTORIZE.upsert([{ id: eventId, values: embedding, metadata: { narrative: stockNarrative, event_type: 'stock_added', product_id } }]);
+            } catch (embedError) {
+              console.warn('Embedding error:', embedError);
+              await enqueueEmbedding(env, eventId);
+            }
+          }
+        } catch (embedErrorOuter) {
+          console.warn('Embedding/event error:', embedErrorOuter);
         }
 
         return Response.json({ success: true, message: "Stock added successfully" }, { status: 200, headers: corsHeaders });
@@ -494,24 +536,26 @@ export default {
               const productInfo = await env.DB.prepare("SELECT name FROM PRODUCTS WHERE product_id = ?").bind(product_id).first();
               const prodName = (productInfo as any)?.name || product_id;
               const saleNarrative = `Sale: ${quantity} units of "${prodName}" sold. Profit per unit: ${((selling_price - discount_price - retail_price).toFixed(2))}. Total profit: ${lineProfit.toFixed(2)}.`;
-              
-              const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', {
-                text: saleNarrative
-              }) as any;
-              const embedding = embeddingResponse.result?.embeddings?.[0] || embeddingResponse.data?.[0]?.embedding || embeddingResponse.data?.[0];
               const eventId = crypto.randomUUID();
               const now = new Date();
               const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-              
               await env.DB.prepare(
                 `INSERT INTO AI_EVENTS (event_id, event_type, narrative, metadata, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)`
               ).bind(eventId, 'sale_completed', saleNarrative, JSON.stringify({product_id, quantity, profit: lineProfit}), now.toISOString(), expiresAt.toISOString()).run();
-              
-              await env.VECTORIZE.upsert([{
-                id: eventId,
-                values: embedding,
-                metadata: { narrative: saleNarrative, event_type: 'sale_completed', product_id }
-              }]);
+
+              const skip = Boolean(body?.skip_vectorize);
+              if (skip) {
+                await enqueueEmbedding(env, eventId);
+              } else {
+                try {
+                  const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', { text: saleNarrative }) as any;
+                  const embedding = embeddingResponse.result?.embeddings?.[0] || embeddingResponse.data?.[0]?.embedding || embeddingResponse.data?.[0];
+                  await env.VECTORIZE.upsert([{ id: eventId, values: embedding, metadata: { narrative: saleNarrative, event_type: 'sale_completed', product_id } }]);
+                } catch (embedErr) {
+                  console.warn('Sale embedding error:', embedErr);
+                  await enqueueEmbedding(env, eventId);
+                }
+              }
             } catch (embedError) {
               console.warn('Sale event embedding error:', embedError);
             }
@@ -704,24 +748,20 @@ Rules:
           `INSERT INTO AI_EVENTS (event_id, event_type, narrative, metadata, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)`
         ).bind(eventId, event_type, narrative, JSON.stringify(metadata || {}), now.toISOString(), expiresAt.toISOString()).run();
 
-        // Generate embedding and store in Vectorize
-        const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', {
-          text: narrative
-        }) as any;
-        const embedding = embeddingResponse.result?.data?.[0]?.embedding || embeddingResponse.data?.[0];
-
-        await env.VECTORIZE.upsert([
-          {
-            id: eventId,
-            values: embedding,
-            metadata: {
-              narrative,
-              event_type,
-              created_at: now.toISOString(),
-              ...metadata
-            }
+        // Generate embedding and store in Vectorize (allow skip_vectorize)
+        const skip = Boolean(body?.skip_vectorize);
+        if (skip) {
+          await enqueueEmbedding(env, eventId);
+        } else {
+          try {
+            const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', { text: narrative }) as any;
+            const embedding = embeddingResponse.result?.data?.[0]?.embedding || embeddingResponse.data?.[0];
+            await env.VECTORIZE.upsert([{ id: eventId, values: embedding, metadata: { narrative, event_type, created_at: now.toISOString(), ...metadata } }]);
+          } catch (embedErr) {
+            console.warn('log-event embedding error:', embedErr);
+            await enqueueEmbedding(env, eventId);
           }
-        ]);
+        }
 
         return Response.json({ success: true, event_id: eventId }, { status: 201, headers: corsHeaders });
       } catch (error: any) {
@@ -749,6 +789,48 @@ Rules:
         return Response.json({ success: true, removed: list.length !== newList.length }, { status: 200, headers: corsHeaders });
       } catch (error: any) {
         return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+      }
+    }
+
+    // POST /api/queue/embed/process (Process queued embeddings)
+    if (url.pathname === '/api/queue/embed/process' && request.method === 'POST') {
+      try {
+        const q = url.searchParams.get('batch') || '50';
+        const batch = Math.min(500, parseInt(q));
+        const ids = await dequeueEmbeddingBatch(env, batch);
+        const results: any[] = [];
+        for (const eventId of ids) {
+          try {
+            const row = await env.DB.prepare('SELECT * FROM AI_EVENTS WHERE event_id = ?').bind(eventId).first();
+            if (!row) {
+              results.push({ eventId, status: 'missing_event' });
+              continue;
+            }
+            const narrative = row.narrative;
+            let metadata: any = {};
+            if (row.metadata) {
+              if (typeof row.metadata === 'string') {
+                try { metadata = JSON.parse(row.metadata); } catch (_) { metadata = {}; }
+              } else if (typeof row.metadata === 'object') {
+                metadata = row.metadata;
+              }
+            }
+            try {
+              const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', { text: narrative }) as any;
+              const embedding = embeddingResponse.result?.data?.[0]?.embedding || embeddingResponse.data?.[0];
+              await env.VECTORIZE.upsert([{ id: eventId, values: embedding, metadata: { narrative, ...metadata } }]);
+              results.push({ eventId, status: 'embedded' });
+            } catch (embedErr) {
+              console.warn('embed process error for', eventId, embedErr);
+              results.push({ eventId, status: 'embed_failed' });
+            }
+          } catch (e) {
+            results.push({ eventId, status: 'error', error: String(e) });
+          }
+        }
+        return Response.json({ success: true, processed: results.length, results }, { headers: corsHeaders });
+      } catch (e: any) {
+        return Response.json({ success: false, error: e.message }, { status: 500, headers: corsHeaders });
       }
     }
 

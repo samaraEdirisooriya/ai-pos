@@ -14,6 +14,12 @@ database_id = "086963ff-1b80-4c68-a335-afc227a9a778"
 binding = "SCANNER_KV"
 id = "fa7025ae6bb043bd9549479ba8c8e9ee"
 
+# KV namespace for embedding queue (used by backend to enqueue/dequeue AI_EVENTS IDs for async embedding)
+[[kv_namespaces]]
+binding = "EMBED_QUEUE"
+# KV namespace id created in Cloudflare for EMBED_QUEUE
+id = "3cf635e404d04cc4bb7358147ed70065"
+
 # Vectorize for AI embeddings and semantic search
 [[vectorize]]
 binding = "VECTORIZE"
