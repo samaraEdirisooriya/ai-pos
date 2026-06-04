@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/active_scanner.dart';
@@ -37,19 +38,42 @@ class _StocksPageState extends State<StocksPage> {
   StreamSubscription? _qrSubscription;
   bool _addStockOpen = false;
   int _page = 1;
-  int _limit = 50;
+  int _limit = 20;
   int _total = 0;
+  bool _isLoadingMore = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetchStocks();
+    _scrollController.addListener(() {
+      if (_scrollController.position.maxScrollExtent - _scroll_controller_position() < 300) {
+        if (!_isLoadingMore && (_total == 0 || _page * _limit < _total)) {
+          _fetchStocks(loadMore: true);
+        }
+      }
+    });
   }
 
-  void _fetchStocks({String? query}) {
+  double _scroll_controller_position(){
+    try { return _scroll_controller_position_safe(); } catch (_) { return 0.0; }
+  }
+  double _scroll_controller_position_safe(){
+    return _scrollController.position.pixels;
+  }
+
+  void _fetchStocks({String? query, bool loadMore = false}) {
     if (query != null && query.isNotEmpty) {
       _page = 1;
       _total = 0;
+    }
+    if (loadMore) {
+      _isLoadingMore = true;
+      _page += 1;
+    } else {
+      _isLoadingMore = false;
+      _page = 1;
     }
     context.read<StocksBloc>().add(FetchStocks(query: query, page: _page, limit: _limit));
   }
@@ -71,7 +95,7 @@ class _StocksPageState extends State<StocksPage> {
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
-    
+    _scrollController.dispose();
     _qrSubscription?.cancel();
     _qrServer?.stop();
     super.dispose();
@@ -758,7 +782,8 @@ class _StocksPageState extends State<StocksPage> {
         );
 
         return CustomScrollView(
-          physics: const BouncingScrollPhysics(),
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
               child: headerContent,
@@ -834,6 +859,11 @@ class _StocksPageState extends State<StocksPage> {
                       style: GoogleFonts.inter(color: Colors.redAccent)),
                 );
               } else if (state is StocksLoaded) {
+                if (_isLoadingMore) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) setState(() { _isLoadingMore = false; });
+                  });
+                }
                 final stocks = List<StockItem>.from(state.stocks);
                 // update local total if available from bloc (handled in meta)
                 // note: StocksBloc updates internal _total; we keep page tracking in this UI
@@ -897,12 +927,11 @@ class _StocksPageState extends State<StocksPage> {
                                     child: stock.productUrl.isNotEmpty
                                         ? ClipRRect(
                                             borderRadius: BorderRadius.circular(8),
-                                            child: Image.network(
-                                              stock.productUrl,
+                                            child: CachedNetworkImage(
+                                              imageUrl: stock.productUrl,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (ctx, err, _) =>
-                                                  const Icon(Icons.image,
-                                                      size: 20, color: Colors.white24),
+                                              placeholder: (c, u) => Container(color: Colors.white12),
+                                              errorWidget: (c, u, e) => const Icon(Icons.image, size: 20, color: Colors.white24),
                                             ),
                                           )
                                         : Icon(Icons.image,
@@ -985,13 +1014,14 @@ class _StocksPageState extends State<StocksPage> {
                     if (stocks.length < (state.total ?? 0))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16.0),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            setState(() { _page += 1; });
-                            _fetchStocks();
-                          },
-                          child: const Text('Load more'),
-                        ),
+                        child: _isLoadingMore
+                            ? SizedBox(height: 48, child: Center(child: CircularProgressIndicator()))
+                            : ElevatedButton(
+                                onPressed: () {
+                                  _fetchStocks(loadMore: true);
+                                },
+                                child: const Text('Load more'),
+                              ),
                       )
                   ],
                 );

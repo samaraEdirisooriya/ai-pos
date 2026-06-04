@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -39,10 +40,12 @@ class _PosProductsGridState extends State<PosProductsGrid> {
   final ProductRemoteDataSourceImpl _remote = ProductRemoteDataSourceImpl(dio: Dio());
   final List<POSItem> _products = [];
   bool _loading = false;
+  bool _isLoadingMore = false;
+  final ScrollController _scrollController = ScrollController();
   String _query = '';
   Timer? _debounce;
   int _page = 1;
-  int _limit = 50;
+  int _limit = 20;
   int _total = 0;
   List<POSItem> _mostUsed = [];
 
@@ -59,6 +62,7 @@ class _PosProductsGridState extends State<PosProductsGrid> {
               return const SizedBox.shrink();
             }
             return ListView(
+              controller: _scrollController,
               padding: EdgeInsets.zero,
               children: [
                 _buildSearchBar(isMobile),
@@ -127,16 +131,18 @@ class _PosProductsGridState extends State<PosProductsGrid> {
                           crossAxisSpacing: isMobile ? 6 : 8,
                           mainAxisSpacing: isMobile ? 6 : 8,
                         ),
-                        itemCount: _products.length,
+                          itemCount: _products.length,
                         itemBuilder: (context, index) {
-                          // lazy load next page
-                          if (index >= _products.length - 4 &&
-                              _products.length < _total) {
-                            _fetchProducts(loadMore: true);
-                          }
                           return _draggableCard(_products[index], isMobile);
                         },
                       ),
+                if (_isLoadingMore) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 48,
+                    child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
+                  ),
+                ],
               ],
             );
           },
@@ -150,11 +156,19 @@ class _PosProductsGridState extends State<PosProductsGrid> {
     super.initState();
     _fetchMostUsed();
     _fetchProducts();
+    _scrollController.addListener(() {
+      if (_scrollController.position.maxScrollExtent - _scrollController.position.pixels < 300) {
+        if (!_loading && !_isLoadingMore && _products.length < _total) {
+          _fetchProducts(loadMore: true);
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -185,8 +199,12 @@ class _PosProductsGridState extends State<PosProductsGrid> {
   }
 
   Future<void> _fetchProducts({bool loadMore = false}) async {
-    if (_loading) return;
-    setState(() { _loading = true; });
+    if (_loading || _isLoadingMore) return;
+    if (loadMore) {
+      setState(() { _isLoadingMore = true; });
+    } else {
+      setState(() { _loading = true; });
+    }
     try {
       if (!loadMore) { _page = 1; _products.clear(); }
       final response = await _dio.get('${_remote.baseUrl}/products', queryParameters: _query.isNotEmpty ? {'q': _query, 'page': _page, 'limit': _limit} : {'page': _page, 'limit': _limit});
@@ -203,12 +221,22 @@ class _PosProductsGridState extends State<PosProductsGrid> {
             _products.addAll(mapped);
             _page += 1;
           });
+          // Prefetch images for smoother UX
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            for (final p in mapped) {
+              if (p.imageUrl.isNotEmpty) {
+                precacheImage(CachedNetworkImageProvider(p.imageUrl), context);
+              }
+            }
+          });
         }
       }
     } catch (e) {
       // ignore
     } finally {
-      if (mounted) setState(() { _loading = false; });
+      if (mounted) {
+        setState(() { _loading = false; _isLoadingMore = false; });
+      }
     }
   }
 
@@ -367,9 +395,17 @@ class _PosProductsGridState extends State<PosProductsGrid> {
                 color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.image,
-                  size: isMobile ? 28 : 36,
-                  color: Colors.white24),
+              child: product.imageUrl.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: CachedNetworkImage(
+                        imageUrl: product.imageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (c, u) => Container(color: Colors.white12),
+                        errorWidget: (c, u, e) => Icon(Icons.broken_image, color: Colors.white24, size: isMobile ? 28 : 36),
+                      ),
+                    )
+                  : Icon(Icons.image, size: isMobile ? 28 : 36, color: Colors.white24),
             ),
           ),
           const SizedBox(height: 4),
