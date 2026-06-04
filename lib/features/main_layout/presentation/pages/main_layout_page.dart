@@ -284,15 +284,7 @@ class _MainLayoutPageState extends State<MainLayoutPage>
             ],
           ),
         ),
-        // Right mobile icons
-        IconButton(
-          icon: const Icon(Icons.notifications_none,
-              color: AppColors.textPrimary, size: 20),
-          onPressed: () {},
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-        ),
-        // Profile dropdown
+        // Profile dropdown (right side)
         PopupMenuButton<String>(
           icon: const CircleAvatar(
             radius: 14,
@@ -308,28 +300,6 @@ class _MainLayoutPageState extends State<MainLayoutPage>
                   const SizedBox(width: 8),
                   Text('Admin User',
                       style: GoogleFonts.inter(fontSize: 12)),
-                ],
-              ),
-            ),
-            const PopupMenuDivider(),
-            PopupMenuItem<String>(
-              value: 'settings',
-              child: Row(
-                children: [
-                  const Icon(Icons.settings, size: 18),
-                  const SizedBox(width: 8),
-                  Text('Settings',
-                      style: GoogleFonts.inter(fontSize: 12)),
-                ],
-              ),
-            ),
-            PopupMenuItem<String>(
-              value: 'help',
-              child: Row(
-                children: [
-                  const Icon(Icons.help, size: 18),
-                  const SizedBox(width: 8),
-                  Text('Help', style: GoogleFonts.inter(fontSize: 12)),
                 ],
               ),
             ),
@@ -354,84 +324,68 @@ class _MainLayoutPageState extends State<MainLayoutPage>
 
   Widget _buildDesktopTopNav() {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // ── LARGE LOGO ──
-        const Icon(Icons.apps, color: AppColors.textPrimary, size: 24),
-        const SizedBox(width: 12),
-        Text(
-          'Lanka AI',
-          style: GoogleFonts.inter(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-            letterSpacing: -0.5,
-          ),
+        // ── LARGE LOGO (LEFT) ──
+        Row(
+          children: [
+            const Icon(Icons.apps, color: AppColors.textPrimary, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              'Lanka AI',
+              style: GoogleFonts.inter(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12.0),
+              child: Text('|',
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 24)),
+            ),
+            Text(
+              'Super POS',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12.0),
-          child: Text('|',
-              style:
-                  TextStyle(color: AppColors.textSecondary, fontSize: 24)),
-        ),
-        Text(
-          'Super POS',
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(width: 16),
 
-        // ── RIGHT ICONS ──
-        IconButton(
-          icon: const Icon(Icons.qr_code),
-          onPressed: () async {
-            final link = await _getOrCreateQrLink();
-            _showQrDialog(context, link);
-          },
-          tooltip: 'Open scanner link',
-          iconSize: 20),
-        IconButton(
-          icon: const Icon(Icons.notifications_none),
-          onPressed: () {},
-          iconSize: 20),
-        IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {},
-            iconSize: 20),
-        IconButton(
-            icon: const Icon(Icons.help_outline),
-            onPressed: () {},
-            iconSize: 20),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Admin User',
-                  style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary), overflow: TextOverflow.ellipsis),
-              Text('Manager',
-                  style: GoogleFonts.inter(
-                      fontSize: 10, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        const CircleAvatar(
-          radius: 16,
-          backgroundImage:
-              NetworkImage('https://i.pravatar.cc/100?img=33'),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          icon: const Icon(Icons.logout, color: AppColors.error, size: 20),
-          onPressed: () {},
-          tooltip: 'Logout',
+        // ── PROFILE SECTION (RIGHT) ──
+        Row(
+          children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text('Admin User',
+                    style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary)),
+                Text('Manager',
+                    style: GoogleFonts.inter(
+                        fontSize: 10, color: AppColors.textSecondary)),
+              ],
+            ),
+            const SizedBox(width: 12),
+            const CircleAvatar(
+              radius: 16,
+              backgroundImage:
+                  NetworkImage('https://i.pravatar.cc/100?img=33'),
+            ),
+            const SizedBox(width: 12),
+            IconButton(
+              icon: const Icon(Icons.logout, color: AppColors.error, size: 20),
+              onPressed: () {},
+              tooltip: 'Logout',
+            ),
+          ],
         ),
       ],
     );

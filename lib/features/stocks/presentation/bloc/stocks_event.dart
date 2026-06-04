@@ -9,7 +9,9 @@ abstract class StocksEvent extends Equatable {
 
 class FetchStocks extends StocksEvent {
   final String? query;
-  const FetchStocks({this.query});
+  final int? page;
+  final int? limit;
+  const FetchStocks({this.query, this.page, this.limit});
 
   @override
   List<Object?> get props => [query];

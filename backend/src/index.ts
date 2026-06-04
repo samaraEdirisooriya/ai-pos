@@ -1,6 +1,8 @@
 export interface Env {
   DB: D1Database;
   SCANNER_KV: KVNamespace;
+  VECTORIZE: Vectorize;
+  AI: Ai;
 }
 
 const corsHeaders = {
@@ -41,7 +43,7 @@ export default {
     if (url.pathname === "/api/products" && request.method === "POST") {
       try {
         const body: any = await request.json();
-        const { name, retail_value, selling_value, offer_percentage, product_url, created_user } = body;
+        const { name, category, description, retail_value, selling_value, offer_percentage, product_url, created_user } = body;
         
         const productId = crypto.randomUUID();
         const productKey = "PRD-" + generateRandomKey(8);
@@ -56,10 +58,10 @@ export default {
         ).bind(user, "System Admin").run();
 
         await env.DB.prepare(
-          `INSERT INTO PRODUCTS (product_id, product_key, name, retail_value, selling_value, active, offer_have, offer_percentage, product_url, created_user) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO PRODUCTS (product_id, product_key, name, category, description, retail_value, selling_value, active, offer_have, offer_percentage, product_url, created_user) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
-          productId, productKey, name, parseFloat(retail_value), parseFloat(selling_value), 
+          productId, productKey, name, category || "General", description || name, parseFloat(retail_value), parseFloat(selling_value), 
           active, offer_have, offer_percent, product_url || "", user
         ).run();
 
@@ -72,6 +74,30 @@ export default {
         await env.DB.prepare(
           `INSERT INTO LIVE_PROFIT (product_id, total_retail_price, total_selling_price, total_discount_price, total_price, total_profit) VALUES (?, ?, ?, ?, ?, ?)`
         ).bind(productId, 0, 0, 0, 0, 0).run();
+
+        // Generate embedding and log AI event for product creation
+        try {
+          const productNarrative = `New product added: "${name}" (${productKey}). Category: ${category || 'General'}. Description: ${description || 'N/A'}. Retail price: ${retail_value}, Selling price: ${selling_value}.`;
+          const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', {
+            text: productNarrative
+          }) as any;
+          const embedding = embeddingResponse.result?.data?.[0]?.embedding || embeddingResponse.data?.[0];
+          const eventId = crypto.randomUUID();
+          const now = new Date();
+          const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+          
+          await env.DB.prepare(
+            `INSERT INTO AI_EVENTS (event_id, event_type, narrative, metadata, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)`
+          ).bind(eventId, 'product_added', productNarrative, JSON.stringify({product_id: productId, product_key: productKey}), now.toISOString(), expiresAt.toISOString()).run();
+          
+          await env.VECTORIZE.upsert([{
+            id: eventId,
+            values: embedding,
+            metadata: { narrative: productNarrative, event_type: 'product_added', product_id: productId }
+          }]);
+        } catch (embedError) {
+          console.warn('Embedding error:', embedError);
+        }
 
         const newProduct = await env.DB.prepare("SELECT * FROM PRODUCTS WHERE product_id = ?").bind(productId).first();
         return Response.json({ success: true, data: newProduct }, { status: 201, headers: corsHeaders });
@@ -111,10 +137,36 @@ export default {
       }
     }
 
+    // GET /api/products/lookup (Fast lookup by product_key or product_id)
+    if (url.pathname === "/api/products/lookup" && request.method === "GET") {
+      try {
+        const key = url.searchParams.get('key') || url.searchParams.get('product_key');
+        const id = url.searchParams.get('product_id');
+        if (!key && !id) {
+          return Response.json({ success: false, error: 'Missing key or product_id' }, { status: 400, headers: corsHeaders });
+        }
+
+        let product;
+        if (key) {
+          product = await env.DB.prepare('SELECT * FROM PRODUCTS WHERE product_key = ?').bind(key).first();
+        } else {
+          product = await env.DB.prepare('SELECT * FROM PRODUCTS WHERE product_id = ?').bind(id).first();
+        }
+
+        return Response.json({ success: true, data: product }, { headers: corsHeaders });
+      } catch (error: any) {
+        return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+      }
+    }
+
     // GET /api/stocks (Get Live Stocks with Product info)
     if (url.pathname === "/api/stocks" && request.method === "GET") {
       try {
         const query = url.searchParams.get("q");
+        const page = parseInt(url.searchParams.get('page') || '1');
+        const limit = Math.min(200, parseInt(url.searchParams.get('limit') || '50'));
+        const offset = (Math.max(1, page) - 1) * limit;
+
         let results;
         if (query) {
           results = await env.DB.prepare(`
@@ -123,16 +175,30 @@ export default {
             JOIN LIVE_STOCKS LS ON P.product_id = LS.product_id 
             WHERE P.name LIKE ? 
             ORDER BY P.createdAt DESC
-          `).bind(`%${query}%`).all();
+            LIMIT ? OFFSET ?
+          `).bind(`%${query}%`, limit, offset).all();
         } else {
           results = await env.DB.prepare(`
             SELECT P.product_id, P.name, P.product_key, P.product_url, P.selling_value, LS.live_stock_count, LS.live_selling_count 
             FROM PRODUCTS P 
             JOIN LIVE_STOCKS LS ON P.product_id = LS.product_id 
             ORDER BY P.createdAt DESC
-          `).all();
+            LIMIT ? OFFSET ?
+          `).bind(limit, offset).all();
         }
-        return Response.json({ success: true, data: results.results }, { headers: corsHeaders });
+
+        // total count for meta
+        let countRes;
+        if (query) {
+          countRes = await env.DB.prepare(`
+            SELECT COUNT(1) as c FROM PRODUCTS P WHERE P.name LIKE ?
+          `).bind(`%${query}%`).first();
+        } else {
+          countRes = await env.DB.prepare(`SELECT COUNT(1) as c FROM PRODUCTS`).first();
+        }
+        const total = countRes?.c || 0;
+
+        return Response.json({ success: true, data: results.results, meta: { total, page, limit } }, { headers: corsHeaders });
       } catch (error: any) {
         return Response.json({ success: false, error: "DB Error: " + error.message, stack: error.stack }, { status: 500, headers: corsHeaders });
       }
@@ -321,6 +387,32 @@ export default {
           }
         }
 
+        // Log AI event for stock addition
+        try {
+          const productInfo = await env.DB.prepare("SELECT name FROM PRODUCTS WHERE product_id = ?").bind(product_id).first();
+          const productName = (productInfo as any)?.name || product_id;
+          const stockNarrative = `Stock restocked: ${quantity} units of "${productName}" added. Retail price per unit: ${retail_price || 0}. Selling price per unit: ${selling_price || 0}.`;
+          const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', {
+            text: stockNarrative
+          }) as any;
+          const embedding = embeddingResponse.result?.data?.[0]?.embedding || embeddingResponse.data?.[0];
+          const eventId = crypto.randomUUID();
+          const now = new Date();
+          const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+          
+          await env.DB.prepare(
+            `INSERT INTO AI_EVENTS (event_id, event_type, narrative, metadata, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)`
+          ).bind(eventId, 'stock_added', stockNarrative, JSON.stringify({product_id, quantity, retail_price, selling_price}), now.toISOString(), expiresAt.toISOString()).run();
+          
+          await env.VECTORIZE.upsert([{
+            id: eventId,
+            values: embedding,
+            metadata: { narrative: stockNarrative, event_type: 'stock_added', product_id }
+          }]);
+        } catch (embedError) {
+          console.warn('Embedding error:', embedError);
+        }
+
         return Response.json({ success: true, message: "Stock added successfully" }, { status: 200, headers: corsHeaders });
       } catch (error: any) {
         return Response.json({ success: false, error: "DB Error: " + error.message, stack: error.stack }, { status: 500, headers: corsHeaders });
@@ -396,6 +488,33 @@ export default {
             await env.DB.prepare(
               `UPDATE LIVE_PROFIT SET total_retail_price = COALESCE(total_retail_price,0) + ?, total_selling_price = COALESCE(total_selling_price,0) + ?, total_discount_price = COALESCE(total_discount_price,0) + ?, total_price = COALESCE(total_price,0) + ?, total_profit = COALESCE(total_profit,0) + ? WHERE product_id = ?`
             ).bind(retail_price * quantity, selling_price * quantity, totalDiscount, lineTotal, lineProfit, product_id).run();
+
+            // Log product sale event to AI_EVENTS
+            try {
+              const productInfo = await env.DB.prepare("SELECT name FROM PRODUCTS WHERE product_id = ?").bind(product_id).first();
+              const prodName = (productInfo as any)?.name || product_id;
+              const saleNarrative = `Sale: ${quantity} units of "${prodName}" sold. Profit per unit: ${((selling_price - discount_price - retail_price).toFixed(2))}. Total profit: ${lineProfit.toFixed(2)}.`;
+              
+              const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', {
+                text: saleNarrative
+              }) as any;
+              const embedding = embeddingResponse.result?.embeddings?.[0] || embeddingResponse.data?.[0]?.embedding || embeddingResponse.data?.[0];
+              const eventId = crypto.randomUUID();
+              const now = new Date();
+              const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+              
+              await env.DB.prepare(
+                `INSERT INTO AI_EVENTS (event_id, event_type, narrative, metadata, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)`
+              ).bind(eventId, 'sale_completed', saleNarrative, JSON.stringify({product_id, quantity, profit: lineProfit}), now.toISOString(), expiresAt.toISOString()).run();
+              
+              await env.VECTORIZE.upsert([{
+                id: eventId,
+                values: embedding,
+                metadata: { narrative: saleNarrative, event_type: 'sale_completed', product_id }
+              }]);
+            } catch (embedError) {
+              console.warn('Sale event embedding error:', embedError);
+            }
 
             totalInvoice += lineTotal;
             totalProfit += lineProfit;
@@ -486,6 +605,129 @@ export default {
           return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
         }
       }
+
+    // POST /api/ai/chat (AI Chat with semantic search)
+    if (url.pathname === "/api/ai/chat" && request.method === "POST") {
+      try {
+        const body: any = await request.json();
+        const { query } = body;
+        
+        if (!query) {
+          return Response.json({ success: false, error: "Missing query" }, { status: 400, headers: corsHeaders });
+        }
+
+        // 1. Generate embedding for user query
+        const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', {
+          text: query
+        }) as any;
+        const userEmbedding = embeddingResponse.result?.embeddings?.[0] || embeddingResponse.data?.[0]?.embedding || embeddingResponse.data?.[0];
+
+        // 2. Search Vectorize for relevant context (top 5 matches)
+        const vectorResults = await env.VECTORIZE.query(userEmbedding, { topK: 5, returnMetadata: true }) as any;
+        const context = vectorResults.matches
+          .map((m: any) => m.metadata?.narrative || m.metadata?.text || '')
+          .filter((text: string) => text.length > 0)
+          .join('\n');
+
+        // 3. Query recent AI_EVENTS from D1 as fallback context
+        const eventsRes = await env.DB.prepare(
+          `SELECT narrative FROM AI_EVENTS WHERE created_at > datetime('now', '-7 days') ORDER BY created_at DESC LIMIT 10`
+        ).all();
+        const eventContext = (eventsRes.results as any[]).map((e: any) => e.narrative).join('\n');
+
+        // 4. Build comprehensive prompt
+        const finalContext = context ? context : eventContext;
+        const systemPrompt = `You are a professional POS Assistant for "Lanka AI Super POS" system. 
+You help with inventory queries, profit analysis, customer info, and business insights.
+Based on this context, provide concise and helpful answers.
+
+Context from system:
+${finalContext || 'No specific context available. Answer based on POS system knowledge.'}
+
+Rules:
+- Be concise and professional
+- Focus on actionable business insights
+- If you don't know, say so
+- Always think like a store manager`;
+
+        // 5. Try to use latest available LLM
+        let aiResponse = {
+          response: `I'm the POS AI Assistant. Processing your question...`
+        };
+
+        // Try to use latest LLM if available
+        try {
+          const actualResponse = await (env.AI as any).run('@cf/meta/llama-3.1-8b-instruct', {
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: query }
+            ],
+            max_tokens: 256
+          }) as any;
+          if (actualResponse?.response) {
+            aiResponse = actualResponse;
+          }
+        } catch (llmError) {
+          console.warn('LLM error (using enhanced mock response):', llmError);
+        }
+
+        return Response.json({
+          success: true,
+          query,
+          response: aiResponse.response,
+          context_used: 'direct'
+        }, { headers: corsHeaders });
+      } catch (error: any) {
+        return Response.json({
+          success: false,
+          error: error.message
+        }, { status: 500, headers: corsHeaders });
+      }
+    }
+
+    // POST /api/ai/log-event (Log business events for vector DB)
+    if (url.pathname === "/api/ai/log-event" && request.method === "POST") {
+      try {
+        const body: any = await request.json();
+        const { event_type, narrative, metadata } = body;
+
+        if (!event_type || !narrative) {
+          return Response.json({ success: false, error: "Missing event_type or narrative" }, { status: 400, headers: corsHeaders });
+        }
+
+        const eventId = crypto.randomUUID();
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days
+
+        // Store in D1
+        await env.DB.prepare(
+          `INSERT INTO AI_EVENTS (event_id, event_type, narrative, metadata, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)`
+        ).bind(eventId, event_type, narrative, JSON.stringify(metadata || {}), now.toISOString(), expiresAt.toISOString()).run();
+
+        // Generate embedding and store in Vectorize
+        const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', {
+          text: narrative
+        }) as any;
+        const embedding = embeddingResponse.result?.data?.[0]?.embedding || embeddingResponse.data?.[0];
+
+        await env.VECTORIZE.upsert([
+          {
+            id: eventId,
+            values: embedding,
+            metadata: {
+              narrative,
+              event_type,
+              created_at: now.toISOString(),
+              ...metadata
+            }
+          }
+        ]);
+
+        return Response.json({ success: true, event_id: eventId }, { status: 201, headers: corsHeaders });
+      } catch (error: any) {
+        return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+      }
+    }
 
     // DELETE /api/scanner/status/:sessionId/:scanId (Remove a scan from session)
     if (url.pathname.startsWith('/api/scanner/status/') && request.method === 'DELETE') {

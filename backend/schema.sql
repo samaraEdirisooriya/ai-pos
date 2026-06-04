@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS PRODUCTS (
   product_id TEXT PRIMARY KEY,
   product_key TEXT,
   name TEXT,
+  category TEXT, -- For semantic search & AI recommendations
+  description TEXT, -- For AI embeddings & vector search
   retail_value REAL,
   selling_value REAL,
   active INTEGER, -- 1 for true, 0 for false
@@ -103,4 +105,13 @@ CREATE TABLE IF NOT EXISTS SALES (
   FOREIGN KEY (product_id) REFERENCES PRODUCTS(product_id),
   FOREIGN KEY (client_id) REFERENCES CLIENTS(client_id),
   FOREIGN KEY (created_user) REFERENCES USERS(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS AI_EVENTS (
+  event_id TEXT PRIMARY KEY,
+  event_type TEXT, -- 'stock_added', 'daily_profit', 'client_payment', 'low_stock_alert'
+  narrative TEXT, -- The human-readable story for AI embeddings
+  metadata TEXT, -- JSON: {product_id, amount, date, etc}
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  expires_at DATETIME -- For cleanup of old events
 );

@@ -14,10 +14,11 @@ class StocksLoading extends StocksState {}
 
 class StocksLoaded extends StocksState {
   final List<StockItem> stocks;
-  const StocksLoaded(this.stocks);
+  final int total;
+  const StocksLoaded(this.stocks, {this.total = 0});
 
   @override
-  List<Object?> get props => [stocks];
+  List<Object?> get props => [stocks, total];
 }
 
 class StocksError extends StocksState {

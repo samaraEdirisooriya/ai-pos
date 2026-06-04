@@ -18,6 +18,8 @@ class AddProductScreen extends StatefulWidget {
 class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
+  final _categoryCtrl = TextEditingController();
+  final _descriptionCtrl = TextEditingController();
   final _retailValueCtrl = TextEditingController();
   final _sellingValueCtrl = TextEditingController();
   final _offerPercentageCtrl = TextEditingController();
@@ -33,6 +35,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
         productId: '', // DB generates it
         productKey: '', // DB generates it
         name: _nameCtrl.text,
+        category: _categoryCtrl.text.isEmpty ? 'General' : _categoryCtrl.text,
+        description: _descriptionCtrl.text,
         retailValue: double.parse(_retailValueCtrl.text),
         sellingValue: double.parse(_sellingValueCtrl.text),
         active: true,
@@ -153,6 +157,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             const SizedBox(height: 32),
                             
                             _buildTextField('Product Name', _nameCtrl, Icons.inventory_2, isRequired: true),
+                            const SizedBox(height: 24),
+                            
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                bool isMobile = constraints.maxWidth < 600;
+                                return isMobile
+                                  ? Column(
+                                      children: [
+                                        _buildTextField('Category', _categoryCtrl, Icons.category),
+                                        const SizedBox(height: 24),
+                                        _buildTextField('Description', _descriptionCtrl, Icons.description, isMultiline: true),
+                                      ],
+                                    )
+                                  : Row(
+                                      children: [
+                                        Expanded(child: _buildTextField('Category', _categoryCtrl, Icons.category)),
+                                        const SizedBox(width: 24),
+                                        Expanded(child: _buildTextField('Description', _descriptionCtrl, Icons.description, isMultiline: true)),
+                                      ],
+                                    );
+                              }
+                            ),
                             const SizedBox(height: 24),
                             
                             LayoutBuilder(
@@ -284,7 +310,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, IconData icon, {bool isNumber = false, bool isRequired = false}) {
+  Widget _buildTextField(String label, TextEditingController controller, IconData icon, {bool isNumber = false, bool isRequired = false, bool isMultiline = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -292,11 +318,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
-          keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+          maxLines: isMultiline ? 3 : 1,
+          keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : (isMultiline ? TextInputType.multiline : TextInputType.text),
           style: GoogleFonts.inter(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w600),
           cursorColor: Colors.black,
           decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: Colors.black),
+            prefixIcon: isMultiline ? null : Icon(icon, color: Colors.black),
+            icon: isMultiline ? Icon(icon, color: Colors.black) : null,
             filled: true,
             fillColor: Colors.white, // solid white fill
             enabledBorder: OutlineInputBorder(
@@ -335,6 +363,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _categoryCtrl.dispose();
+    _descriptionCtrl.dispose();
     _retailValueCtrl.dispose();
     _sellingValueCtrl.dispose();
     _offerPercentageCtrl.dispose();

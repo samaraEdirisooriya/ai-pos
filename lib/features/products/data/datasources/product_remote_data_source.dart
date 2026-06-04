@@ -46,6 +46,8 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
         productId: product.productId,
         productKey: product.productKey,
         name: product.name,
+        category: product.category,
+        description: product.description,
         retailValue: product.retailValue,
         sellingValue: product.sellingValue,
         active: product.active,

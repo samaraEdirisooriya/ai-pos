@@ -13,3 +13,12 @@ database_id = "086963ff-1b80-4c68-a335-afc227a9a778"
 [[kv_namespaces]]
 binding = "SCANNER_KV"
 id = "fa7025ae6bb043bd9549479ba8c8e9ee"
+
+# Vectorize for AI embeddings and semantic search
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "pos-brain"
+
+# AI binding for embeddings and LLM
+[ai]
+binding = "AI"
