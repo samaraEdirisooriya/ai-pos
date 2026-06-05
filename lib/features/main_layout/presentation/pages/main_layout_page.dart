@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 // using external QR widget caused version mismatch on some environments
 // we'll use an image QR generator endpoint instead of qr_flutter widget
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -285,12 +286,11 @@ class _MainLayoutPageState extends State<MainLayoutPage>
           ),
         ),
         // Profile dropdown (right side)
-        PopupMenuButton<String>(
-          icon: const CircleAvatar(
-            radius: 14,
-            backgroundImage:
-                NetworkImage('https://i.pravatar.cc/100?img=33'),
-          ),
+          PopupMenuButton<String>(
+            icon: CircleAvatar(
+              radius: 14,
+              backgroundImage: CachedNetworkImageProvider('https://i.pravatar.cc/100?img=33'),
+            ),
           itemBuilder: (context) => [
             PopupMenuItem<String>(
               value: 'profile',
@@ -374,10 +374,9 @@ class _MainLayoutPageState extends State<MainLayoutPage>
               ],
             ),
             const SizedBox(width: 12),
-            const CircleAvatar(
+            CircleAvatar(
               radius: 16,
-              backgroundImage:
-                  NetworkImage('https://i.pravatar.cc/100?img=33'),
+              backgroundImage: CachedNetworkImageProvider('https://i.pravatar.cc/100?img=33'),
             ),
             const SizedBox(width: 12),
             IconButton(
@@ -432,12 +431,14 @@ class _MainLayoutPageState extends State<MainLayoutPage>
             Container(
               color: Colors.white,
               padding: const EdgeInsets.all(8),
-              child: Image.network(
-                'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${Uri.encodeComponent(link)}',
-                width: 180,
-                height: 180,
-                fit: BoxFit.contain,
-              ),
+                 child: CachedNetworkImage(
+                   imageUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${Uri.encodeComponent(link)}',
+                   width: 180,
+                   height: 180,
+                   fit: BoxFit.contain,
+                   placeholder: (c, u) => SizedBox(width: 180, height: 180, child: Center(child: CircularProgressIndicator())),
+                   errorWidget: (c, u, e) => SizedBox(width: 180, height: 180, child: Center(child: Icon(Icons.broken_image, color: Colors.black45))),
+                 ),
             ),
             const SizedBox(height: 12),
             SelectableText(link, style: GoogleFonts.inter(color: Colors.white70)),

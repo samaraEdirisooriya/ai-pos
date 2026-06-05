@@ -30,17 +30,29 @@ class ClientsPage extends StatefulWidget {
 class _ClientsPageState extends State<ClientsPage> with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   late AnimationController _shimmerController;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _shimmerController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
+    _scrollController.addListener(() {
+      try {
+        final state = context.read<ClientsBloc>().state;
+        if (_scrollController.position.maxScrollExtent - _scrollController.position.pixels < 300) {
+          if (!state.loading && state.clients.length < state.total) {
+            context.read<ClientsBloc>().add(LoadMoreClients());
+          }
+        }
+      } catch (_) {}
+    });
   }
 
   @override
   void dispose() {
     _shimmerController.dispose();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -111,62 +123,64 @@ class _ClientsPageState extends State<ClientsPage> with SingleTickerProviderStat
                     ),
             );
 
-            return CustomScrollView(
+            return ListView(
+              controller: _scrollController,
               physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: headerContent,
-                ),
-                SliverFillRemaining(
-                  hasScrollBody: true,
-                  child: state.loading && state.clients.isEmpty
-                      ? GridView.builder(
-                          padding: EdgeInsets.all(isMobile ? 12 : 24),
-                          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: isMobile ? double.infinity : 200,
-                            childAspectRatio: isMobile ? 3.2 : 1.5,
-                            crossAxisSpacing: isMobile ? 8 : 16,
-                            mainAxisSpacing: isMobile ? 8 : 16,
-                          ),
-                          itemCount: 8,
-                          itemBuilder: (context, index) => _buildShimmerCard(),
-                        )
-                      : Column(
-                          children: [
-                            Expanded(
-                              child: GridView.builder(
-                                padding: EdgeInsets.all(isMobile ? 12 : 24),
-                                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: isMobile ? double.infinity : 200,
-                                  childAspectRatio: isMobile ? 3.2 : 1.5,
-                                  crossAxisSpacing: isMobile ? 8 : 16,
-                                  mainAxisSpacing: isMobile ? 8 : 16,
-                                ),
-                                itemCount: state.clients.length,
-                                itemBuilder: (context, index) {
-                                  final c = state.clients[index];
-                                  return InkWell(
-                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ClientDetailPage(clientId: c['client_id']))),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withOpacity(0.08), width: 1)),
-                                      child: Row(children: [
-                                        Container(width: 48, height: 48, decoration: BoxDecoration(color: Colors.white.withOpacity(0.04), borderRadius: BorderRadius.circular(10)), child: const Center(child: Icon(Icons.person, size: 24, color: Colors.white70))),
-                                        const SizedBox(width: 12),
-                                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(c['name'] ?? '', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis), const SizedBox(height: 4), Text(c['email'] ?? '-', style: GoogleFonts.inter(color: Colors.white54, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)])),
-                                        const SizedBox(width: 8),
-                                        const Icon(Icons.chevron_right, color: Colors.white54, size: 18),
-                                      ]),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            if (state.clients.length < state.total)
-                              Padding(padding: const EdgeInsets.only(bottom: 16.0), child: ElevatedButton(onPressed: state.loading ? null : () => context.read<ClientsBloc>().add(LoadMoreClients()), child: state.loading ? const SizedBox(width:16,height:16,child:CircularProgressIndicator(strokeWidth:2)) : Text('Load more')))
-                          ],
+              padding: EdgeInsets.zero,
+              children: [
+                headerContent,
+                state.loading && state.clients.isEmpty
+                    ? GridView.builder(
+                        padding: EdgeInsets.all(isMobile ? 12 : 24),
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: isMobile ? double.infinity : 200,
+                          childAspectRatio: isMobile ? 3.2 : 1.5,
+                          crossAxisSpacing: isMobile ? 8 : 16,
+                          mainAxisSpacing: isMobile ? 8 : 16,
                         ),
-                ),
+                        itemCount: 8,
+                        itemBuilder: (context, index) => _buildShimmerCard(),
+                      )
+                    : Column(
+                        children: [
+                          GridView.builder(
+                            padding: EdgeInsets.all(isMobile ? 12 : 24),
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: isMobile ? double.infinity : 200,
+                              childAspectRatio: isMobile ? 3.2 : 1.5,
+                              crossAxisSpacing: isMobile ? 8 : 16,
+                              mainAxisSpacing: isMobile ? 8 : 16,
+                            ),
+                            itemCount: state.clients.length,
+                            itemBuilder: (context, index) {
+                              final c = state.clients[index];
+                              return InkWell(
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ClientDetailPage(clientId: c['client_id']))),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withOpacity(0.08), width: 1)),
+                                  child: Row(children: [
+                                    Container(width: 48, height: 48, decoration: BoxDecoration(color: Colors.white.withOpacity(0.04), borderRadius: BorderRadius.circular(10)), child: const Center(child: Icon(Icons.person, size: 24, color: Colors.white70))),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(c['name'] ?? '', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis), const SizedBox(height: 4), Text(c['email'] ?? '-', style: GoogleFonts.inter(color: Colors.white54, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)])),
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.chevron_right, color: Colors.white54, size: 18),
+                                  ]),
+                                ),
+                              );
+                            },
+                          ),
+                          if (state.clients.length < state.total)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              child: state.loading ? SizedBox(height: 48, child: Center(child: CircularProgressIndicator())) : const SizedBox.shrink(),
+                            )
+                        ],
+                      ),
               ],
             );
           },

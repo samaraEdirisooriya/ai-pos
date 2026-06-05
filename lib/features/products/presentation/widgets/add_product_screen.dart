@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:toastification/toastification.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/product.dart';
@@ -263,35 +264,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     border: Border.all(color: Colors.black, width: 2),
                                   ),
                                   clipBehavior: Clip.antiAlias,
-                                  child: Image.network(
-                                    url,
-                                    fit: BoxFit.contain, // Better for previewing
-                                    loadingBuilder: (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Center(
-                                        child: CircularProgressIndicator(
-                                          color: Colors.black,
-                                          value: loadingProgress.expectedTotalBytes != null
-                                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                              : null,
+                                  child: CachedNetworkImage(
+                                    imageUrl: url,
+                                    fit: BoxFit.contain,
+                                    placeholder: (c, u) => Center(child: CircularProgressIndicator(color: Colors.black)),
+                                    errorWidget: (c, u, e) => Container(
+                                      color: Colors.white,
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.broken_image, size: 48, color: Colors.black),
+                                            const SizedBox(height: 16),
+                                            Text('Failed to load image', style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.bold)),
+                                          ],
                                         ),
-                                      );
-                                    },
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: Colors.white,
-                                        child: Center(
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.broken_image, size: 48, color: Colors.black),
-                                              const SizedBox(height: 16),
-                                              Text('Failed to load image', style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.bold)),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                      ),
+                                    ),
                                   ),
                                 );
                               },

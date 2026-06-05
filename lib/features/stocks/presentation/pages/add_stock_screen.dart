@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:toastification/toastification.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/active_scanner.dart';
@@ -343,10 +344,11 @@ class _AddStockScreenState extends State<AddStockScreen> {
                                     child: _currentStockItem.productUrl.isNotEmpty
                                           ? ClipRRect(
                                               borderRadius: BorderRadius.circular(12),
-                                              child: Image.network(
-                                                _currentStockItem.productUrl,
+                                              child: CachedNetworkImage(
+                                                imageUrl: _currentStockItem.productUrl,
                                                 fit: BoxFit.cover,
-                                                errorBuilder: (ctx, err, _) => const Icon(Icons.image, size: 40, color: Colors.grey),
+                                                placeholder: (c, u) => Container(color: Colors.grey.shade200),
+                                                errorWidget: (c, u, e) => const Icon(Icons.image, size: 40, color: Colors.grey),
                                               ),
                                             )
                                           : const Icon(Icons.image, size: 40, color: Colors.grey),

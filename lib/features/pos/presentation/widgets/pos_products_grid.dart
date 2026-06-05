@@ -22,7 +22,8 @@ class POSItem {
   final String name;
   final double price;
   final String imageUrl;
-  POSItem({required this.id, required this.name, required this.price, required this.imageUrl});
+  final int stockCount;
+  POSItem({required this.id, required this.name, required this.price, required this.imageUrl, this.stockCount = 0});
 }
 
 class PosProductsGrid extends StatefulWidget {
@@ -189,7 +190,7 @@ class _PosProductsGridState extends State<PosProductsGrid> {
             final data = resp.data['data'];
             if (data is List && data.isNotEmpty) {
               final model = ProductModel.fromJson(data[0]);
-              items.add(POSItem(id: model.productId, name: model.name, price: model.sellingValue, imageUrl: model.productUrl));
+              items.add(POSItem(id: model.productId, name: model.name, price: model.sellingValue, imageUrl: model.productUrl, stockCount: 0));
             }
           }
         } catch (_) {}
@@ -207,27 +208,23 @@ class _PosProductsGridState extends State<PosProductsGrid> {
     }
     try {
       if (!loadMore) { _page = 1; _products.clear(); }
-      final response = await _dio.get('${_remote.baseUrl}/products', queryParameters: _query.isNotEmpty ? {'q': _query, 'page': _page, 'limit': _limit} : {'page': _page, 'limit': _limit});
+      // Use the stocks endpoint which joins product + live stock info so
+      // POS can display live stock counts alongside product info.
+      final response = await _dio.get('${_remote.baseUrl}/stocks', queryParameters: _query.isNotEmpty ? {'q': _query, 'page': _page, 'limit': _limit} : {'page': _page, 'limit': _limit});
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List data = response.data['data'];
         final meta = response.data['meta'] ?? {};
         _total = meta['total'] ?? _total;
         final mapped = data.map((e) {
-          final model = ProductModel.fromJson(Map<String, dynamic>.from(e));
-          return POSItem(id: model.productId, name: model.name, price: model.sellingValue, imageUrl: model.productUrl);
+          final map = Map<String, dynamic>.from(e);
+          final model = ProductModel.fromJson(map);
+          final stockCount = (map['live_stock_count'] ?? 0) is int ? map['live_stock_count'] as int : (map['live_stock_count'] ?? 0).toInt();
+          return POSItem(id: model.productId, name: model.name, price: model.sellingValue, imageUrl: model.productUrl, stockCount: stockCount);
         }).toList();
         if (mounted) {
           setState(() {
             _products.addAll(mapped);
             _page += 1;
-          });
-          // Prefetch images for smoother UX
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            for (final p in mapped) {
-              if (p.imageUrl.isNotEmpty) {
-                precacheImage(CachedNetworkImageProvider(p.imageUrl), context);
-              }
-            }
           });
         }
       }
@@ -425,6 +422,8 @@ class _PosProductsGridState extends State<PosProductsGrid> {
                 fontSize: isMobile ? 12 : 14,
                 fontWeight: FontWeight.w700,
                 color: AppColors.primary)),
+        const SizedBox(height: 4),
+          Text('Stock: ${product.stockCount}', style: GoogleFonts.inter(fontSize: isMobile ? 11 : 12, color: Colors.white70, fontWeight: FontWeight.w600)),
         ],
       ),
     );

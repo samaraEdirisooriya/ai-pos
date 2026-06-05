@@ -19,16 +19,29 @@ class SuppliersPage extends StatefulWidget {
 class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProviderStateMixin {
   List<dynamic> _suppliers = [];
   bool _loading = false;
+  bool _isLoadingMore = false;
   final TextEditingController _searchController = TextEditingController();
   int _page = 1;
   int _limit = 20;
   int _total = 0;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetchSuppliers();
     _shimmerController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
+    _scrollController.addListener(() {
+      try {
+        if (_scrollController.position.maxScrollExtent - _scrollController.position.pixels < 300) {
+          if (!_loading && !_isLoadingMore && _suppliers.length < _total) {
+            _isLoadingMore = true;
+            setState(() { _page += 1; });
+            _fetchSuppliers();
+          }
+        }
+      } catch (_) {}
+    });
   }
 
   late AnimationController _shimmerController;
@@ -47,6 +60,7 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
           if (q != null && q.isNotEmpty) {
             _suppliers = newItems;
             _page = 1;
+            _isLoadingMore = false;
           } else {
             if (_page == 1) _suppliers = newItems; else _suppliers.addAll(newItems);
           }
@@ -56,7 +70,10 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
     } catch (e) {
       // ignore
     }
-    setState(() => _loading = false);
+    setState(() { 
+      _loading = false;
+      _isLoadingMore = false;
+    });
   }
 
   Future<void> _openAddSupplier() async {
@@ -72,6 +89,7 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
   void dispose() {
     _shimmerController.dispose();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -141,39 +159,40 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
                 ),
         );
 
-        return CustomScrollView(
+        return ListView(
+          controller: _scrollController,
           physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: headerContent,
-            ),
-            SliverFillRemaining(
-              hasScrollBody: true,
-              child: _loading
-            ? GridView.builder(
-                padding: EdgeInsets.all(isMobile ? 12 : 24),
-                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: isMobile ? double.infinity : 200,
-                  childAspectRatio: isMobile ? 3.2 : 1.5,
-                  crossAxisSpacing: isMobile ? 8 : 16,
-                  mainAxisSpacing: isMobile ? 8 : 16,
-                ),
-                itemCount: 8,
-                itemBuilder: (context, index) => _buildShimmerCard(),
-              )
+          padding: EdgeInsets.zero,
+          children: [
+            headerContent,
+            _loading && _suppliers.isEmpty
+              ? GridView.builder(
+                  padding: EdgeInsets.all(isMobile ? 12 : 24),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: isMobile ? double.infinity : 200,
+                    childAspectRatio: isMobile ? 3.2 : 1.5,
+                    crossAxisSpacing: isMobile ? 8 : 16,
+                    mainAxisSpacing: isMobile ? 8 : 16,
+                  ),
+                  itemCount: 8,
+                  itemBuilder: (context, index) => _buildShimmerCard(),
+                )
             : Column(
                 children: [
-                  Expanded(
-                    child: GridView.builder(
-                padding: EdgeInsets.all(isMobile ? 12 : 24),
-                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: isMobile ? double.infinity : 200,
-                  childAspectRatio: isMobile ? 3.2 : 1.5,
-                  crossAxisSpacing: isMobile ? 8 : 16,
-                  mainAxisSpacing: isMobile ? 8 : 16,
-                ),
-                      itemCount: _suppliers.length,
-                          itemBuilder: (context, index) {
+                  GridView.builder(
+                    padding: EdgeInsets.all(isMobile ? 12 : 24),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: isMobile ? double.infinity : 200,
+                      childAspectRatio: isMobile ? 3.2 : 1.5,
+                      crossAxisSpacing: isMobile ? 8 : 16,
+                      mainAxisSpacing: isMobile ? 8 : 16,
+                    ),
+                    itemCount: _suppliers.length,
+                    itemBuilder: (context, index) {
                       final s = _suppliers[index];
                       return InkWell(
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SupplierDetailPage(supplierId: s['supplier_id']))),
@@ -213,25 +232,19 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
                           ),
                         ),
                       );
-                          },
-                    ),
+                    },
                   ),
                   if (_suppliers.length < _total)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16.0),
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : () {
-                          setState(() { _page += 1; });
-                          _fetchSuppliers();
-                        },
-                        child: _loading ? const SizedBox(width:16,height:16,child:CircularProgressIndicator(strokeWidth:2)) : Text('Load more'),
-                      ),
+                      child: _loading
+                          ? SizedBox(height: 48, child: Center(child: CircularProgressIndicator()))
+                          : const SizedBox.shrink(),
                     )
                 ],
               ),
-        ),
-      ],
-    );
+          ],
+        );
       },
     );
   }

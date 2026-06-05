@@ -47,13 +47,22 @@ class _StocksPageState extends State<StocksPage> {
   void initState() {
     super.initState();
     _fetchStocks();
-    _scrollController.addListener(() {
-      if (_scrollController.position.maxScrollExtent - _scroll_controller_position() < 300) {
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    try {
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final currentScroll = _scrollController.position.pixels;
+      if (maxScroll - currentScroll < 500) {
         if (!_isLoadingMore && (_total == 0 || _page * _limit < _total)) {
           _fetchStocks(loadMore: true);
         }
       }
-    });
+    } catch (_) {
+      // Ignore scroll position errors
+    }
   }
 
   double _scroll_controller_position(){
@@ -757,281 +766,259 @@ class _StocksPageState extends State<StocksPage> {
 
         Widget headerContent = Padding(
           padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 16.0 : 24.0, 
+              horizontal: isMobile ? 16.0 : 24.0,
               vertical: isMobile ? 12.0 : 16.0),
-          child: isMobile 
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: _buildSearchBar()),
-                      const SizedBox(width: 8),
-                      _buildActionButtons(true),
-                    ],
-                  ),
-                ],
-              )
-            : Row(
-                children: [
-                  Expanded(child: _buildSearchBar()),
-                  const SizedBox(width: 16),
-                  _buildActionButtons(false),
-                ],
-              ),
+          child: isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: _buildSearchBar()),
+                        const SizedBox(width: 8),
+                        _buildActionButtons(true),
+                      ],
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: _buildSearchBar()),
+                    const SizedBox(width: 16),
+                    _buildActionButtons(false),
+                  ],
+                ),
         );
 
-        return CustomScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: headerContent,
-            ),
-            SliverFillRemaining(
-              hasScrollBody: true,
-              child: BlocBuilder<StocksBloc, StocksState>(
-            builder: (context, state) {
-              if (state is StocksLoading) {
-                return GridView.builder(
-                  padding: EdgeInsets.all(isMobile ? 12 : 24),
-                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: isMobile ? double.infinity : 320,
-                    childAspectRatio: isMobile ? 3.5 : 1.8,
-                    crossAxisSpacing: isMobile ? 8 : 16,
-                    mainAxisSpacing: isMobile ? 8 : 16,
-                  ),
-                  itemCount: 12,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.02),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            width: 1),
+        return ListView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.zero,
+          children: [
+            headerContent,
+            BlocBuilder<StocksBloc, StocksState>(
+              builder: (context, state) {
+                  if (state is StocksLoading) {
+                    return GridView.builder(
+                      padding: EdgeInsets.all(isMobile ? 12 : 24),
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: isMobile ? double.infinity : 320,
+                        childAspectRatio: isMobile ? 3.5 : 1.8,
+                        crossAxisSpacing: isMobile ? 8 : 16,
+                        mainAxisSpacing: isMobile ? 8 : 16,
                       ),
-                      padding: EdgeInsets.all(isMobile ? 12 : 16),
-                      child: Row(
+                      itemCount: 12,
+                      itemBuilder: (context, index) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.02),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                width: 1),
+                          ),
+                          padding: EdgeInsets.all(isMobile ? 12 : 16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: isMobile ? 48 : 64,
+                                height: isMobile ? 48 : 64,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              SizedBox(width: isMobile ? 12 : 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      height: isMobile ? 14 : 16,
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Container(
+                                      height: isMobile ? 10 : 12,
+                                      width: 100,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  } else if (state is StocksError) {
+                    return Center(
+                      child: Text('Error: ${state.message}',
+                          style: GoogleFonts.inter(color: Colors.redAccent)),
+                    );
+                  } else if (state is StocksLoaded) {
+                    if (_isLoadingMore) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) setState(() {
+                          _isLoadingMore = false;
+                        });
+                      });
+                    }
+
+                    final stocks = List<StockItem>.from(state.stocks);
+
+                    if (_sortOption == 'High Stock') {
+                      stocks.sort((a, b) => b.liveStockCount.compareTo(a.liveStockCount));
+                    } else if (_sortOption == 'Low Stock') {
+                      stocks.sort((a, b) => a.liveStockCount.compareTo(b.liveStockCount));
+                    }
+
+                    if (stocks.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.inventory_2_outlined, size: 64, color: Colors.white24),
+                            const SizedBox(height: 16),
+                            Text('No stocks found', style: GoogleFonts.inter(color: Colors.white54, fontSize: 18)),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return SingleChildScrollView(
+                      child: Column(
                         children: [
-                          Container(
-                            width: isMobile ? 48 : 64,
-                            height: isMobile ? 48 : 64,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                          GridView.builder(
+                            padding: EdgeInsets.all(isMobile ? 12 : 24),
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: isMobile ? double.infinity : 340,
+                            childAspectRatio: isMobile ? 3.5 : 2.0,
+                            crossAxisSpacing: isMobile ? 8 : 16,
+                            mainAxisSpacing: isMobile ? 8 : 16,
                           ),
-                          SizedBox(width: isMobile ? 12 : 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  height: isMobile ? 14 : 16,
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(4),
+                          itemCount: stocks.length,
+                          itemBuilder: (context, index) {
+                            final stock = stocks[index];
+                            return InkWell(
+                              onTap: () => _openAddStockScreen(stock),
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                    width: 1,
                                   ),
                                 ),
-                                const SizedBox(height: 12),
-                                Container(
-                                  height: isMobile ? 10 : 12,
-                                  width: 100,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
+                                padding: EdgeInsets.all(isMobile ? 12 : 16),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: isMobile ? 48 : 64,
+                                      height: isMobile ? 48 : 64,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: stock.productUrl.isNotEmpty
+                                          ? ClipRRect(
+                                              borderRadius: BorderRadius.circular(8),
+                                              child: CachedNetworkImage(
+                                                imageUrl: stock.productUrl,
+                                                fit: BoxFit.cover,
+                                                placeholder: (c, u) => Container(color: Colors.white12),
+                                                errorWidget: (c, u, e) => const Icon(Icons.image, size: 20, color: Colors.white24),
+                                              ),
+                                            )
+                                          : Icon(Icons.image, size: isMobile ? 20 : 24, color: Colors.white24),
+                                    ),
+                                    SizedBox(width: isMobile ? 12 : 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(stock.name,
+                                              style: GoogleFonts.inter(
+                                                fontSize: isMobile ? 14 : 15,
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.white,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis),
+                                          const SizedBox(height: 4),
+                                          Text(stock.productKey,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.inter(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.white54,
+                                              )),
+                                          const SizedBox(height: 6),
+                                          Text('LKR ${stock.sellingValue.toStringAsFixed(2)}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.inter(
+                                                fontSize: isMobile ? 12 : 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white70,
+                                              )),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 16, vertical: isMobile ? 4 : 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(alpha: 0.3),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.white24, width: 2),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text('LIVE', style: GoogleFonts.inter(fontSize: isMobile ? 8 : 10, fontWeight: FontWeight.w800, letterSpacing: 1.5, color: Colors.greenAccent)),
+                                          const SizedBox(height: 4),
+                                          Text('${stock.liveStockCount}', style: GoogleFonts.inter(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.w900, color: Colors.white)),
+                                        ],
+                                      ),
+                                    )
+                                  ],
                                 ),
-                              ],
+                              ),
+                            );
+                          },
+                        ),
+                          if (stocks.length < (state.total ?? 0))
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              child: _isLoadingMore ? SizedBox(height: 48, child: Center(child: CircularProgressIndicator())) : const SizedBox.shrink(),
                             ),
-                          ),
                         ],
                       ),
                     );
-                  },
-                );
-              } else if (state is StocksError) {
-                return Center(
-                  child: Text('Error: ${state.message}',
-                      style: GoogleFonts.inter(color: Colors.redAccent)),
-                );
-              } else if (state is StocksLoaded) {
-                if (_isLoadingMore) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) setState(() { _isLoadingMore = false; });
-                  });
-                }
-                final stocks = List<StockItem>.from(state.stocks);
-                // update local total if available from bloc (handled in meta)
-                // note: StocksBloc updates internal _total; we keep page tracking in this UI
-                
-                // Active Sort Logic
-                if (_sortOption == 'High Stock') {
-                  stocks.sort((a, b) => b.liveStockCount.compareTo(a.liveStockCount));
-                } else if (_sortOption == 'Low Stock') {
-                  stocks.sort((a, b) => a.liveStockCount.compareTo(b.liveStockCount));
-                }
+                  }
 
-                if (stocks.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.inventory_2_outlined, size: 64, color: Colors.white24),
-                        const SizedBox(height: 16),
-                        Text('No stocks found', style: GoogleFonts.inter(color: Colors.white54, fontSize: 18)),
-                      ],
-                    ),
-                  );
-                }
-
-                return Column(
-                  children: [
-                    Expanded(
-                      child: GridView.builder(
-                        padding: EdgeInsets.all(isMobile ? 12 : 24),
-                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: isMobile ? double.infinity : 340,
-                          childAspectRatio: isMobile ? 3.5 : 2.0,
-                          crossAxisSpacing: isMobile ? 8 : 16,
-                          mainAxisSpacing: isMobile ? 8 : 16,
-                        ),
-                        itemCount: stocks.length,
-                        itemBuilder: (context, index) {
-                          final stock = stocks[index];
-                          return InkWell(
-                            onTap: () => _openAddStockScreen(stock),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.1),
-                                    width: 1),
-                              ),
-                              padding: EdgeInsets.all(isMobile ? 12 : 16),
-                              child: Row(
-                                children: [
-                                  // Product Image Thumbnail
-                                  Container(
-                                    width: isMobile ? 48 : 64,
-                                    height: isMobile ? 48 : 64,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: stock.productUrl.isNotEmpty
-                                        ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(8),
-                                            child: CachedNetworkImage(
-                                              imageUrl: stock.productUrl,
-                                              fit: BoxFit.cover,
-                                              placeholder: (c, u) => Container(color: Colors.white12),
-                                              errorWidget: (c, u, e) => const Icon(Icons.image, size: 20, color: Colors.white24),
-                                            ),
-                                          )
-                                        : Icon(Icons.image,
-                                            size: isMobile ? 20 : 24,
-                                            color: Colors.white24),
-                                  ),
-                                  SizedBox(width: isMobile ? 12 : 16),
-
-                                  // Product Info
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(stock.name,
-                                            style: GoogleFonts.inter(
-                                                fontSize: isMobile ? 14 : 15,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.white),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis),
-                                        const SizedBox(height: 4),
-                                        Text(stock.productKey,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.inter(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors.white54)),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                            'LKR ${stock.sellingValue.toStringAsFixed(2)}',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.inter(
-                                                fontSize: isMobile ? 12 : 13,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.white70)),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-
-                                  // Live Stock Display
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: isMobile ? 10 : 16,
-                                        vertical: isMobile ? 4 : 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.3),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border:
-                                          Border.all(color: Colors.white24, width: 2),
-                                    ),
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text('LIVE',
-                                            style: GoogleFonts.inter(
-                                                fontSize: isMobile ? 8 : 10,
-                                                fontWeight: FontWeight.w800,
-                                                letterSpacing: 1.5,
-                                                color: Colors.greenAccent)),
-                                        const SizedBox(height: 4),
-                                        Text('${stock.liveStockCount}',
-                                            style: GoogleFonts.inter(
-                                                fontSize: isMobile ? 20 : 24,
-                                                fontWeight: FontWeight.w900,
-                                                color: Colors.white)),
-                                      ],
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    if (stocks.length < (state.total ?? 0))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0),
-                        child: _isLoadingMore
-                            ? SizedBox(height: 48, child: Center(child: CircularProgressIndicator()))
-                            : ElevatedButton(
-                                onPressed: () {
-                                  _fetchStocks(loadMore: true);
-                                },
-                                child: const Text('Load more'),
-                              ),
-                      )
-                  ],
-                );
-              }
-              return const SizedBox();
-            },
-          ),
-        ),
-      ],
-    );
+                  return const SizedBox();
+              },
+            ),
+          ],
+        );
       },
     );
   }

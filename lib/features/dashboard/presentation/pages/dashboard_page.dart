@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -49,9 +50,9 @@ class DashboardPage extends StatelessWidget {
                     const SizedBox(width: 32),
                     Row(
                       children: [
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 12,
-                          backgroundImage: NetworkImage('https://i.pravatar.cc/100?img=11'),
+                          backgroundImage: CachedNetworkImageProvider('https://i.pravatar.cc/100?img=11'),
                         ),
                         const SizedBox(width: 8),
                         Column(
@@ -109,7 +110,7 @@ class DashboardPage extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            const CircleAvatar(radius: 16, backgroundImage: NetworkImage('https://i.pravatar.cc/100?img=5')),
+                            CircleAvatar(radius: 16, backgroundImage: CachedNetworkImageProvider('https://i.pravatar.cc/100?img=5')),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -122,7 +123,7 @@ class DashboardPage extends StatelessWidget {
                             ),
                             const Icon(Icons.play_arrow, size: 16),
                             const SizedBox(width: 12),
-                            const CircleAvatar(radius: 16, backgroundImage: NetworkImage('https://i.pravatar.cc/100?img=12')),
+                            CircleAvatar(radius: 16, backgroundImage: CachedNetworkImageProvider('https://i.pravatar.cc/100?img=12')),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -410,7 +411,7 @@ class DashboardPage extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(radius: 16, backgroundImage: NetworkImage(imgUrl)),
+          CircleAvatar(radius: 16, backgroundImage: CachedNetworkImageProvider(imgUrl)),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,

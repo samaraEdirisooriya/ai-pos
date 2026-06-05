@@ -30,7 +30,23 @@ async function enqueueEmbedding(env: Env, eventId: string) {
       try { list = JSON.parse(raw); } catch (_) { list = []; }
     }
     list.push(eventId);
-    if (env.EMBED_QUEUE) await env.EMBED_QUEUE.put(key, JSON.stringify(list));
+    if (env.EMBED_QUEUE) {
+      try {
+        await env.EMBED_QUEUE.put(key, JSON.stringify(list));
+        return;
+      } catch (e) {
+        console.warn('KV put failed in enqueueEmbedding, falling back to DB', e);
+      }
+    }
+
+    // KV put failed or not configured -> fallback to D1 table
+    try {
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS EMBED_QUEUE (id INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT, queued_at DATETIME DEFAULT CURRENT_TIMESTAMP, processed INTEGER DEFAULT 0)`).run();
+      await env.DB.prepare('INSERT INTO EMBED_QUEUE (event_id, processed) VALUES (?, 0)').bind(eventId).run();
+      return;
+    } catch (dbErr) {
+      console.warn('Failed to fallback-insert embed queue to DB', dbErr);
+    }
   } catch (e) {
     console.warn('Failed to enqueue embedding', e);
   }
@@ -587,19 +603,28 @@ export default {
         if (!sessionId || !code) {
           return Response.json({ success: false, error: 'Missing sessionId or code' }, { status: 400, headers: corsHeaders });
         }
-
         const key = 'scan:' + sessionId;
-        const raw = await env.SCANNER_KV.get(key);
-        let list: any[] = [];
-        if (raw) {
-          try { list = JSON.parse(raw); } catch (_) { list = []; }
-        }
-
         const item = { id: crypto.randomUUID(), code, ts: Date.now(), bookmarked: false };
-        list.push(item);
-
-        await env.SCANNER_KV.put(key, JSON.stringify(list), { expirationTtl: 3600 });
-        return Response.json({ success: true, stored: true, item }, { status: 200, headers: corsHeaders });
+        // Try KV first; if KV quota or put fails, fallback to D1 table
+        try {
+          const raw = await env.SCANNER_KV.get(key);
+          let list: any[] = [];
+          if (raw) {
+            try { list = JSON.parse(raw); } catch (_) { list = []; }
+          }
+          list.push(item);
+          await env.SCANNER_KV.put(key, JSON.stringify(list), { expirationTtl: 3600 });
+          return Response.json({ success: true, stored: true, item, storage: 'kv' }, { status: 200, headers: corsHeaders });
+        } catch (kvErr) {
+          // KV failed (quota etc.) — attempt D1 fallback
+          try {
+            await env.DB.prepare(`CREATE TABLE IF NOT EXISTS SCANNER_EVENTS (id TEXT PRIMARY KEY, session_id TEXT, code TEXT, ts INTEGER, bookmarked INTEGER)`).run();
+            await env.DB.prepare(`INSERT INTO SCANNER_EVENTS (id, session_id, code, ts, bookmarked) VALUES (?, ?, ?, ?, ?)`).bind(item.id, sessionId, code, item.ts, 0).run();
+            return Response.json({ success: true, stored: true, item, storage: 'd1' }, { status: 200, headers: corsHeaders });
+          } catch (dbErr) {
+            return Response.json({ success: false, error: 'KV error: ' + String(kvErr) + ' ; DB fallback error: ' + String(dbErr) }, { status: 500, headers: corsHeaders });
+          }
+        }
       } catch (error: any) {
         return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
       }
@@ -618,6 +643,18 @@ export default {
         let list: any[] = [];
         if (raw) {
           try { list = JSON.parse(raw); } catch (_) { list = []; }
+        }
+        // If KV empty, try D1 fallback table
+        if ((!list || list.length === 0) && env.DB) {
+          try {
+            const rows = await env.DB.prepare(`SELECT id, code, ts, bookmarked FROM SCANNER_EVENTS WHERE session_id = ? ORDER BY ts DESC LIMIT 1000`).bind(sessionId).all();
+            if (rows && (rows.results?.length || 0) > 0) {
+              const res = rows.results || [];
+              list = (res as any[]).map(r => ({ id: r.id, code: r.code, ts: r.ts, bookmarked: !!r.bookmarked }));
+            }
+          } catch (e) {
+            // ignore DB read errors
+          }
         }
         return Response.json({ success: true, scans: list }, { status: 200, headers: corsHeaders });
       } catch (error: any) {
@@ -639,12 +676,25 @@ export default {
           if (raw) {
             try { list = JSON.parse(raw); } catch (_) { list = []; }
           }
-          if (!list.length) {
-            return Response.json({ success: true, item: null }, { status: 200, headers: corsHeaders });
+          if (list && list.length > 0) {
+            const item = list.shift();
+            await env.SCANNER_KV.put(key, JSON.stringify(list), { expirationTtl: 3600 });
+            return Response.json({ success: true, item }, { status: 200, headers: corsHeaders });
           }
-          const item = list.shift();
-          await env.SCANNER_KV.put(key, JSON.stringify(list), { expirationTtl: 3600 });
-          return Response.json({ success: true, item }, { status: 200, headers: corsHeaders });
+          // KV empty: try D1 fallback (pop oldest)
+          if (env.DB) {
+            try {
+              const row = await env.DB.prepare(`SELECT id, code, ts, bookmarked FROM SCANNER_EVENTS WHERE session_id = ? ORDER BY ts ASC LIMIT 1`).bind(sessionId).first();
+              if (!row) return Response.json({ success: true, item: null }, { status: 200, headers: corsHeaders });
+              const item = { id: row.id, code: row.code, ts: row.ts, bookmarked: !!row.bookmarked };
+              // remove it
+              await env.DB.prepare(`DELETE FROM SCANNER_EVENTS WHERE id = ?`).bind(row.id).run();
+              return Response.json({ success: true, item }, { status: 200, headers: corsHeaders });
+            } catch (e) {
+              return Response.json({ success: false, error: String(e) }, { status: 500, headers: corsHeaders });
+            }
+          }
+          return Response.json({ success: true, item: null }, { status: 200, headers: corsHeaders });
         } catch (error: any) {
           return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
         }
@@ -795,11 +845,55 @@ Rules:
     // POST /api/queue/embed/process (Process queued embeddings)
     if (url.pathname === '/api/queue/embed/process' && request.method === 'POST') {
       try {
-        const q = url.searchParams.get('batch') || '50';
-        const batch = Math.min(500, parseInt(q));
-        const ids = await dequeueEmbeddingBatch(env, batch);
+        const q = url.searchParams.get('batch') || '10';
+        const batch = Math.min(50, parseInt(q));
+
+        // Read raw queue, take a slice, write remaining back
+        if (!env.EMBED_QUEUE) return Response.json({ success: false, error: 'EMBED_QUEUE not configured' }, { status: 500, headers: corsHeaders });
+        const key = 'embed:queue';
+        const raw = await env.EMBED_QUEUE.get(key);
+        let list: string[] = [];
+        if (raw) {
+          try { list = JSON.parse(raw); } catch (_) { list = []; }
+        }
+        if (!list.length) return Response.json({ success: true, processed: 0, results: [] }, { headers: corsHeaders });
+        const take = list.slice(0, batch);
+        const remain = list.slice(take.length);
+        // Try to update KV; if KV put fails (quota), fallback to processing DB queue instead
+        let kvPutOk = false;
+        try {
+          await env.EMBED_QUEUE.put(key, JSON.stringify(remain));
+          kvPutOk = true;
+        } catch (putErr) {
+          console.warn('KV put failed in processor, will fallback to DB queue', putErr);
+          kvPutOk = false;
+        }
+
         const results: any[] = [];
-        for (const eventId of ids) {
+        // If KV update failed, read from DB queue instead
+        let processIds: string[] = take;
+        if (!kvPutOk) {
+          // Read pending items from D1 EMBED_QUEUE
+          try {
+            await env.DB.prepare(`CREATE TABLE IF NOT EXISTS EMBED_QUEUE (id INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT, queued_at DATETIME DEFAULT CURRENT_TIMESTAMP, processed INTEGER DEFAULT 0)`).run();
+            const qrows = await env.DB.prepare('SELECT id, event_id FROM EMBED_QUEUE WHERE processed = 0 ORDER BY queued_at ASC LIMIT ?').bind(batch).all();
+            const qlist = qrows.results || qrows;
+            processIds = qlist.map((r: any) => r.event_id);
+            // Mark them processed (so they won't be picked again)
+            for (const r of qlist) {
+              await env.DB.prepare('UPDATE EMBED_QUEUE SET processed = 1 WHERE id = ?').bind(r.id).run();
+            }
+            // If DB fallback returned nothing, fall back to the KV 'take' slice so we still make progress
+            if (!processIds.length) {
+              processIds = take;
+            }
+          } catch (dbqErr) {
+            console.warn('Failed to read from DB EMBED_QUEUE fallback', dbqErr);
+            processIds = take;
+          }
+        }
+
+        for (const eventId of processIds) {
           try {
             const row = await env.DB.prepare('SELECT * FROM AI_EVENTS WHERE event_id = ?').bind(eventId).first();
             if (!row) {
@@ -822,13 +916,159 @@ Rules:
               results.push({ eventId, status: 'embedded' });
             } catch (embedErr) {
               console.warn('embed process error for', eventId, embedErr);
-              results.push({ eventId, status: 'embed_failed' });
+              // On embed failure, push back to queue for retry
+              await enqueueEmbedding(env, eventId);
+              results.push({ eventId, status: 'embed_failed', error: String(embedErr) });
             }
           } catch (e) {
             results.push({ eventId, status: 'error', error: String(e) });
           }
         }
         return Response.json({ success: true, processed: results.length, results }, { headers: corsHeaders });
+      } catch (e: any) {
+        return Response.json({ success: false, error: e.message }, { status: 500, headers: corsHeaders });
+      }
+    }
+
+    // GET /api/queue/embed/raw (DEBUG) - return raw queue contents
+    if (url.pathname === '/api/queue/embed/raw' && request.method === 'GET') {
+      try {
+        if (!env.EMBED_QUEUE) return Response.json({ success: false, error: 'EMBED_QUEUE not configured' }, { status: 500, headers: corsHeaders });
+        const key = 'embed:queue';
+        const raw = await env.EMBED_QUEUE.get(key);
+        let list: string[] = [];
+        if (raw) {
+          try { list = JSON.parse(raw); } catch (_) { list = []; }
+        }
+        return Response.json({ success: true, count: list.length, items: list.slice(0, 200) }, { headers: corsHeaders });
+      } catch (e: any) {
+        return Response.json({ success: false, error: e.message }, { status: 500, headers: corsHeaders });
+      }
+    }
+
+    // POST /api/queue/embed/dequeue_debug (DEBUG) - call dequeueEmbeddingBatch and return its output
+    if (url.pathname === '/api/queue/embed/dequeue_debug' && request.method === 'POST') {
+      try {
+        const body = (await request.json().catch(() => ({}))) as any;
+        const batch = (body?.batch as number) || 10;
+        const ids = await dequeueEmbeddingBatch(env, batch);
+        return Response.json({ success: true, dequeued: ids.length, ids }, { headers: corsHeaders });
+      } catch (e: any) {
+        return Response.json({ success: false, error: e.message }, { status: 500, headers: corsHeaders });
+      }
+    }
+
+    // POST /api/queue/embed/reindex (Process AI_EVENTS directly by event_type)
+    if (url.pathname === '/api/queue/embed/reindex' && request.method === 'POST') {
+      try {
+        const q = url.searchParams.get('batch') || '500';
+        const batch = Math.min(1000, parseInt(q));
+        const body = (await request.json().catch(() => ({}))) as any;
+        const filterType = (body?.event_type as string) || 'product_added';
+
+        // Instead of performing many AI/Vectorize subrequests in one Worker invocation (which
+        // can hit Cloudflare's subrequest limits), enqueue the matching event IDs into
+        // the EMBED_QUEUE KV and let the queue processor handle embedding in safe batches.
+        const rows = await env.DB.prepare('SELECT event_id FROM AI_EVENTS WHERE event_type = ? ORDER BY created_at ASC LIMIT ?').bind(filterType, batch).all();
+        const list = (rows.results || rows) as any[];
+        const results: any[] = [];
+        for (const row of list) {
+          try {
+            if (row.event_id) {
+              await enqueueEmbedding(env, String(row.event_id));
+              results.push({ eventId: row.event_id, status: 'queued' });
+            } else {
+              results.push({ eventId: null, status: 'missing_event_id' });
+            }
+          } catch (e: any) {
+            results.push({ eventId: row.event_id, status: 'error', error: String(e) });
+          }
+        }
+        return Response.json({ success: true, processed: results.length, results }, { headers: corsHeaders });
+      } catch (e: any) {
+        return Response.json({ success: false, error: e.message }, { status: 500, headers: corsHeaders });
+      }
+    }
+
+    // POST /api/queue/embed/reindex_process (Process AI_EVENTS in small safe batches and mark them)
+    if (url.pathname === '/api/queue/embed/reindex_process' && request.method === 'POST') {
+      try {
+        const body = (await request.json().catch(() => ({}))) as any;
+        const filterType = (body?.event_type as string) || 'product_added';
+        const batch = Math.max(1, Math.min(20, parseInt(String((body?.batch as string) || '5'))));
+
+        // Ensure AI_EVENTS has embedded_at column
+        try {
+          await env.DB.prepare('ALTER TABLE AI_EVENTS ADD COLUMN embedded_at DATETIME').run();
+        } catch (_) { /* ignore if already exists */ }
+
+        const rows = await env.DB.prepare('SELECT event_id, narrative, metadata FROM AI_EVENTS WHERE event_type = ? AND (embedded_at IS NULL) ORDER BY created_at ASC LIMIT ?').bind(filterType, batch).all();
+        const list = rows.results || rows;
+        const results: any[] = [];
+        for (const row of list) {
+          try {
+            const narrative = row.narrative;
+            let metadata: any = {};
+            if (row.metadata) {
+              if (typeof row.metadata === 'string') {
+                try { metadata = JSON.parse(row.metadata); } catch (_) { metadata = {}; }
+              } else if (typeof row.metadata === 'object') metadata = row.metadata;
+            }
+            try {
+              const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', { text: narrative }) as any;
+              const embedding = embeddingResponse.result?.data?.[0]?.embedding || embeddingResponse.data?.[0];
+              await env.VECTORIZE.upsert([{ id: String(row.event_id), values: embedding, metadata: { narrative, ...metadata } }]);
+              // mark embedded
+              try { await env.DB.prepare('UPDATE AI_EVENTS SET embedded_at = CURRENT_TIMESTAMP WHERE event_id = ?').bind(row.event_id).run(); } catch (_) {}
+              results.push({ eventId: row.event_id, status: 'embedded' });
+            } catch (embedErr) {
+              console.warn('Reindex_process embed error for', row.event_id, embedErr);
+              results.push({ eventId: row.event_id, status: 'error', error: String(embedErr) });
+            }
+          } catch (e: any) {
+            results.push({ eventId: row.event_id, status: 'error', error: String(e) });
+          }
+        }
+        return Response.json({ success: true, processed: results.length, results }, { headers: corsHeaders });
+      } catch (e: any) {
+        return Response.json({ success: false, error: e.message }, { status: 500, headers: corsHeaders });
+      }
+    }
+
+    // GET /api/ai_events/unembedded_count - return count and sample IDs
+    if (url.pathname === '/api/ai_events/unembedded_count' && request.method === 'GET') {
+      try {
+        const sampleLimit = parseInt(url.searchParams.get('sample') || '20');
+        const countRes = await env.DB.prepare('SELECT COUNT(1) as c FROM AI_EVENTS WHERE embedded_at IS NULL').first();
+        const total = countRes?.c || 0;
+        const sampleRows = await env.DB.prepare('SELECT event_id, event_type, created_at FROM AI_EVENTS WHERE embedded_at IS NULL ORDER BY created_at ASC LIMIT ?').bind(sampleLimit).all();
+        const items = sampleRows?.results || sampleRows || [];
+        return Response.json({ success: true, total, sample: items }, { headers: corsHeaders });
+      } catch (err: any) {
+        return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+      }
+    }
+
+    // POST /api/vectorize/sample_check - verify an AI_EVENTS event is discoverable in VECTORIZE
+    if (url.pathname === '/api/vectorize/sample_check' && request.method === 'POST') {
+      try {
+        const body: any = await request.json().catch(() => ({}));
+        const eventId = body?.event_id;
+        if (!eventId) return Response.json({ success: false, error: 'Missing event_id' }, { status: 400, headers: corsHeaders });
+
+        const row = await env.DB.prepare('SELECT narrative FROM AI_EVENTS WHERE event_id = ?').bind(eventId).first();
+        if (!row || !row.narrative) return Response.json({ success: false, error: 'Event not found or has no narrative' }, { status: 404, headers: corsHeaders });
+
+        const narrative = row.narrative;
+        // compute embedding and query VECTORIZE
+        try {
+          const embeddingResponse = await (env.AI as any).run('@cf/baai/bge-m3', { text: narrative }) as any;
+          const embedding = embeddingResponse.result?.data?.[0]?.embedding || embeddingResponse.data?.[0];
+          const vectorResults = await env.VECTORIZE.query(embedding, { topK: 5, returnMetadata: true }) as any;
+          return Response.json({ success: true, eventId, narrative, vectorResults }, { headers: corsHeaders });
+        } catch (ve: any) {
+          return Response.json({ success: false, error: 'Vector check failed: ' + String(ve) }, { status: 500, headers: corsHeaders });
+        }
       } catch (e: any) {
         return Response.json({ success: false, error: e.message }, { status: 500, headers: corsHeaders });
       }
@@ -917,7 +1157,7 @@ Rules:
         'function addLocal(code) {' +
         '  try{ playBeep(); }catch(e){} if (seen.has(code)) return; seen.add(code); const it = { id: null, code, ts: Date.now(), sent: false }; scanned.unshift(it); renderList(); }' +
         'function sendItem(idx) {' +
-        '  const it = scanned[idx]; if (!it) return; fetch("/api/scanner/submit", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ sessionId: "' + sessionId + '", code: it.code }) }).then(r=>r.json()).then(j=>{ if (j && j.success) { it.sent = true; it.id = j.item.id; try{ playBeep(); }catch(e){} renderList(); } else { alert("Failed to send"); } }).catch(e=>{ alert("Error: " + e); }); }' +
+        '  const it = scanned[idx]; if (!it) return; fetch("' + url.origin + '/api/scanner/submit", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ sessionId: "' + sessionId + '", code: it.code }) }).then(r=>r.json()).then(j=>{ if (j && j.success) { it.sent = true; it.id = j.item.id; try{ playBeep(); }catch(e){} renderList(); } else { alert("Failed to send: " + (j && j.error ? j.error : JSON.stringify(j))); } }).catch(e=>{ alert("Error: " + e); }); }' +
         'const html5QrCode = new Html5Qrcode("reader");' +
         'const onScanSuccess = (decodedText) => { addLocal(decodedText); };' +
         'const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };' +

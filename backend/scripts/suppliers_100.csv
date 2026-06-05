@@ -1,0 +1,101 @@
+id,name,email,phone_num,address,created_user,total_stock,retail_price_total,createdAt
+1,Fresh Harvest Ltd,contact@freshharvest.com,+94771234501,"45 Galle Road, Colombo 03",admin,994,209915.87,2026-06-04T05:00:00.000Z
+2,Prime Beef Suppliers,orders@primebeef.lk,+94771234502,"12 Main Street, Kandy",admin,1056,323092.42,2026-06-03T03:00:00.000Z
+3,Whiskers Pet Foods,info@whiskers.lk,+94771234503,"78 Station Road, Negombo",admin,1927,459298.42,2026-06-01T01:00:00.000Z
+4,Farm Fresh Poultry,sales@farmfresh.lk,+94771234504,"23 Hill Street, Galle",admin,1217,131349.56,2026-06-01T07:00:00.000Z
+5,Golden Sun Oils,support@goldensun.lk,+94771234505,"56 Beach Road, Matara",admin,3081,456098.07,2026-06-05T00:00:00.000Z
+6,Green Valley Produce,hello@greenvalley.lk,+94771234506,"89 Temple Road, Anuradhapura",admin,4213,12085.89,2026-06-03T09:00:00.000Z
+7,Pedigree Pet Nutrition,lk@pedigree.com,+94771234507,"34 Park Avenue, Colombo 05",admin,458,471510.09,2026-06-05T21:00:00.000Z
+8,Ocean Catch Seafood,fresh@oceancatch.lk,+94771234508,"67 Fishery Harbour, Beruwala",admin,3779,118275.82,2026-06-02T20:00:00.000Z
+9,Spice World Lanka,trade@spiceworld.lk,+94771234509,"91 Market Street, Jaffna",admin,3469,73585.66,2026-06-01T19:00:00.000Z
+10,Nature's Best Honey,buzz@naturesbest.lk,+94771234510,"15 Garden Road, Nuwara Eliya",admin,2536,285857.62,2026-06-03T19:00:00.000Z
+11,Dairy Delight Ice Cream,cold@dairydelight.lk,+94771234511,"42 Factory Lane, Ratnapura",admin,2795,202553.48,2026-06-02T22:00:00.000Z
+12,Tropicana Beverages,drinks@tropicana.lk,+94771234512,"88 River Side, Kalutara",admin,760,148753.48,2026-06-02T07:00:00.000Z
+13,Berry Farms Ceylon,pick@berryfarms.lk,+94771234513,"33 Orchard Road, Bandarawela",admin,2864,241391.01,2026-06-05T20:00:00.000Z
+14,Citrus Grove Lanka,squeeze@citrusgrove.lk,+94771234514,"77 Sunny Side, Badulla",admin,3508,214709.22,2026-06-01T04:00:00.000Z
+15,Dairy Pure Milk,pure@dairypure.lk,+94771234515,"19 Dairy Farm Road, Ambewela",admin,1164,123661.73,2026-06-05T07:00:00.000Z
+16,MuscleTech Nutrition,bulk@muscletech.lk,+94771234516,"55 Gym Street, Colombo 07",admin,4211,208379.71,2026-06-05T18:00:00.000Z
+17,Golden Grain Rice,rice@goldengrain.lk,+94771234517,"66 Paddy Field Road, Polonnaruwa",admin,533,56211.27,2026-06-05T21:00:00.000Z
+18,Coca-Cola Beverages Lanka,ccbl@cocacola.com,+94771234518,"101 Industrial Zone, Biyagama",admin,2456,10300.33,2026-06-01T12:00:00.000Z
+19,Kleenex Tissues Lanka,care@kleenex.lk,+94771234519,"28 Paper Mill Road, Horana",admin,2380,45461.0,2026-06-01T13:00:00.000Z
+20,Aquafina Water Lanka,clear@aquafina.lk,+94771234520,"14 Spring Valley, Kegalle",admin,2580,494465.71,2026-06-02T19:00:00.000Z
+21,Essence Cosmetics,beauty@essence.lk,+94771234521,"3 Cosmetic Lane, Colombo 04",admin,2901,399731.24,2026-06-04T00:00:00.000Z
+22,Glamour Beauty Products,glam@glamourbeauty.lk,+94771234522,"67 Fashion Street, Colombo 02",admin,1281,475661.2,2026-06-01T05:00:00.000Z
+23,Velvet Touch Makeup,soft@velvettouch.lk,+94771234523,"21 Beauty Road, Dehiwala",admin,1273,261440.55,2026-06-04T09:00:00.000Z
+24,Chic Cosmetics Lanka,style@chiccosmetics.lk,+94771234524,"95 Elegance Avenue, Mount Lavinia",admin,1946,156893.38,2026-06-01T07:00:00.000Z
+25,Nail Couture Salon Supply,nails@nailcouture.lk,+94771234525,"48 Polish Street, Wattala",admin,2609,10101.0,2026-06-05T10:00:00.000Z
+26,Calvin Klein Fragrances,ck@calvinklein.lk,+94771234526,"72 Designer Road, Colombo 01",admin,4161,350221.66,2026-06-01T06:00:00.000Z
+27,Chanel Lanka,luxury@chanel.lk,+94771234527,"11 High Street, Colombo 03",admin,4742,100692.57,2026-06-01T17:00:00.000Z
+28,Dior Perfumes Lanka,scent@dior.lk,+94771234528,"59 Avenue Road, Colombo 07",admin,1824,147555.02,2026-06-03T14:00:00.000Z
+29,Dolce & Gabbana Lanka,dg@dolcegabbana.lk,+94771234529,"38 Fashion Avenue, Colombo 05",admin,3195,491407.27,2026-06-04T15:00:00.000Z
+30,Gucci Fragrances Lanka,lux@gucci.lk,+94771234530,"84 Elite Road, Colombo 04",admin,3025,405180.51,2026-06-04T23:00:00.000Z
+31,Annibale Colombo Furniture,wood@annibalecolombo.lk,+94771234531,"17 Craft Street, Moratuwa",admin,4985,365424.63,2026-06-05T15:00:00.000Z
+32,Furniture Co. Lanka,build@furnitureco.lk,+94771234532,"63 Workshop Road, Homagama",admin,3535,372816.04,2026-06-01T09:00:00.000Z
+33,Knoll Seating Lanka,sit@knoll.lk,+94771234533,"29 Office Park, Colombo 08",admin,76,224788.52,2026-06-02T13:00:00.000Z
+34,Bath Trends Lanka,wash@bathtrends.lk,+94771234534,"85 Sanitary Road, Kaduwela",admin,2634,281727.24,2026-06-05T01:00:00.000Z
+35,Apple Inc. Lanka,business@apple.lk,+94771234535,"1 Infinite Loop, Colombo 01",admin,1642,139278.39,2026-06-03T11:00:00.000Z
+36,Samsung Electronics Lanka,enterprise@samsung.lk,+94771234536,"44 Tech Park, Colombo 10",admin,4961,158996.8,2026-06-03T10:00:00.000Z
+37,OPPO Mobile Lanka,service@oppo.lk,+94771234537,"76 Phone Street, Colombo 06",admin,1915,332197.63,2026-06-05T18:00:00.000Z
+38,Huawei Technologies Lanka,support@huawei.lk,+94771234538,"22 Network Road, Colombo 11",admin,221,26957.4,2026-06-05T18:00:00.000Z
+39,Microsoft Surface Lanka,surface@microsoft.lk,+94771234539,"8 Software Park, Colombo 09",admin,2307,133922.17,2026-06-03T18:00:00.000Z
+40,Infinix Mobile Lanka,hot@infinix.lk,+94771234540,"53 Budget Road, Colombo 12",admin,4322,92587.9,2026-06-05T10:00:00.000Z
+41,HP Inc. Lanka,print@hp.lk,+94771234541,"37 Computer Street, Colombo 13",admin,103,60658.22,2026-06-05T09:00:00.000Z
+42,Generic Apparel Lanka,bulk@genericapparel.lk,+94771234542,"64 Textile Road, Katunayake",admin,751,265618.6,2026-06-04T11:00:00.000Z
+43,Casual Wear Suppliers,easy@casualwear.lk,+94771234543,"18 Comfort Street, Ja-Ela",admin,4983,441347.12,2026-06-03T00:00:00.000Z
+44,Fashion Line Lanka,trend@fashionline.lk,+94771234544,"92 Style Avenue, Kelaniya",admin,2038,462052.55,2026-06-04T08:00:00.000Z
+45,Formal Wear Lanka,suit@formalwear.lk,+94771234545,"41 Business Road, Maharagama",admin,2682,417711.32,2026-06-04T02:00:00.000Z
+46,Leather Co. Lanka,hide@leatherco.lk,+94771234546,"7 Tanning Street, Piliyandala",admin,1377,394957.96,2026-06-01T03:00:00.000Z
+47,Sports Gear Lanka,play@sportsgear.lk,+94771234547,"69 Stadium Road, Diyagama",admin,876,232573.47,2026-06-02T16:00:00.000Z
+48,Nike Lanka Pvt Ltd,justdoit@nike.lk,+94771234548,"2 Swoosh Street, Colombo 05",admin,4384,284687.91,2026-06-01T21:00:00.000Z
+49,KitchenCraft Lanka,cook@kitchencraft.lk,+94771234549,"31 Chef Road, Battaramulla",admin,317,176153.64,2026-06-05T05:00:00.000Z
+50,MetalWorks Lanka,forge@metalworks.lk,+94771234550,"86 Industrial Road, Seethawaka",admin,2756,440879.24,2026-06-04T23:00:00.000Z
+51,BlendMaster Appliances,mix@blendmaster.lk,+94771234551,"13 Blender Road, Avissawella",admin,3784,474563.29,2026-06-02T00:00:00.000Z
+52,WokMaster Cookware,stir@wokmaster.lk,+94771234552,"57 Wok Street, Hanwella",admin,1804,271297.9,2026-06-01T09:00:00.000Z
+53,StoneCraft Surfaces,cut@stonecraft.lk,+94771234553,"24 Granite Road, Kosgama",admin,4842,446134.68,2026-06-02T07:00:00.000Z
+54,CoolKitchen Accessories,chill@coolkitchen.lk,+94771234554,"71 Freeze Road, Padukka",admin,3526,338915.5,2026-06-05T11:00:00.000Z
+55,SharpEdge Knives,sharp@sharpedge.lk,+94771234555,"46 Blade Street, Hanwella",admin,2508,352386.4,2026-06-02T17:00:00.000Z
+56,LunchMate Containers,pack@lunchmate.lk,+94771234556,"12 Box Road, Hanwella",admin,175,150711.72,2026-06-01T07:00:00.000Z
+57,MicroWave Appliances,heat@microwave.lk,+94771234557,"98 Oven Road, Hanwella",admin,4872,182198.52,2026-06-01T05:00:00.000Z
+58,ServeWell Trays,serve@servewell.lk,+94771234558,"35 Tray Street, Hanwella",admin,341,235677.21,2026-06-04T01:00:00.000Z
+59,Baker's Choice Tools,bake@bakerschoice.lk,+94771234559,"60 Flour Road, Hanwella",admin,4992,91154.01,2026-06-05T09:00:00.000Z
+60,CookPro Kitchenware,chef@cookpro.lk,+94771234560,"9 Pan Road, Hanwella",admin,3493,452217.76,2026-06-03T17:00:00.000Z
+61,DinnerWare Lanka,dine@dinnerware.lk,+94771234561,"82 Plate Road, Hanwella",admin,2162,463923.59,2026-06-03T08:00:00.000Z
+62,SpiceWorld Racks,spice@spiceworld.lk,+94771234562,"50 Rack Road, Hanwella",admin,3089,143269.12,2026-06-01T20:00:00.000Z
+63,StoragePlus Jars,store@storageplus.lk,+94771234563,"27 Jar Road, Hanwella",admin,2384,488851.76,2026-06-04T03:00:00.000Z
+64,GlassWorks Lanka,clear@glassworks.lk,+94771234564,"93 Glass Road, Hanwella",admin,2977,161743.52,2026-06-03T08:00:00.000Z
+65,SoftTouch Cotton,soft@softtouch.lk,+94771234565,"4 Pad Road, Hanwella",admin,2634,181761.42,2026-06-01T14:00:00.000Z
+66,Listerine Oral Care,fresh@listerine.lk,+94771234566,"68 Mouth Road, Hanwella",admin,4189,68994.02,2026-06-02T03:00:00.000Z
+67,Home Decor Lanka,decorate@homedecor.lk,+94771234567,"16 Swing Road, Hanwella",admin,1108,166709.25,2026-06-01T08:00:00.000Z
+68,Memories Photo Frames,frame@memories.lk,+94771234568,"83 Picture Road, Hanwella",admin,505,481756.72,2026-06-05T13:00:00.000Z
+69,Green Home Plants,grow@greenhome.lk,+94771234569,"39 Plant Road, Hanwella",admin,344,371824.17,2026-06-05T10:00:00.000Z
+70,Garden Plus Pots,pot@gardenplus.lk,+94771234570,"75 Pottery Road, Hanwella",admin,3460,292194.68,2026-06-02T09:00:00.000Z
+71,Lumina Lighting,light@lumina.lk,+94771234571,"6 Lamp Road, Hanwella",admin,2155,19898.29,2026-06-01T04:00:00.000Z
+72,Memories Keepsakes,keep@memories.lk,+94771234572,"94 Memory Road, Hanwella",admin,1475,234563.98,2026-06-05T20:00:00.000Z
+73,Nature's Gift Lanka,gift@naturesgift.lk,+94771234573,"52 Present Road, Hanwella",admin,1001,194866.93,2026-06-01T20:00:00.000Z
+74,EcoFriendly Lanka,green@ecofriendly.lk,+94771234574,"28 Eco Road, Hanwella",admin,2493,50843.72,2026-06-03T09:00:00.000Z
+75,Sustainable Living Co,earth@sustainable.lk,+94771234575,"61 Green Road, Hanwella",admin,2914,255355.38,2026-06-05T01:00:00.000Z
+76,Organic Choice Lanka,pure@organicchoice.lk,+94771234576,"15 Organic Road, Hanwella",admin,791,398889.94,2026-06-03T01:00:00.000Z
+77,Healthy Harvest Co,health@healthyharvest.lk,+94771234577,"87 Wellness Road, Hanwella",admin,316,61507.64,2026-06-05T02:00:00.000Z
+78,NutriLife Supplements,vitamin@nutrilife.lk,+94771234578,"43 Pill Road, Hanwella",admin,4125,187520.16,2026-06-03T06:00:00.000Z
+79,FitLife Nutrition,fit@fitlife.lk,+94771234579,"10 Gym Road, Hanwella",admin,2093,108853.35,2026-06-03T01:00:00.000Z
+80,PowerProtein Lanka,protein@powerprotein.lk,+94771234580,"76 Muscle Road, Hanwella",admin,3556,260702.18,2026-06-05T18:00:00.000Z
+81,CleanCare Hygiene,clean@cleancare.lk,+94771234581,"32 Soap Road, Hanwella",admin,4764,1079.75,2026-06-03T18:00:00.000Z
+82,FreshStart Cleaning,start@freshstart.lk,+94771234582,"58 Mop Road, Hanwella",admin,4228,32407.22,2026-06-03T00:00:00.000Z
+83,SparkleClean Products,shine@sparkleclean.lk,+94771234583,"21 Polish Road, Hanwella",admin,2595,263093.63,2026-06-04T21:00:00.000Z
+84,HomeFresh Aromas,scent@homefresh.lk,+94771234584,"89 Aroma Road, Hanwella",admin,3633,31097.41,2026-06-03T06:00:00.000Z
+85,ZenScents Lanka,calm@zenscents.lk,+94771234585,"47 Incense Road, Hanwella",admin,2752,140414.25,2026-06-03T20:00:00.000Z
+86,AromaTherapy Lanka,relax@aromatherapy.lk,+94771234586,"3 Oil Road, Hanwella",admin,4791,115089.31,2026-06-03T00:00:00.000Z
+87,PureEssence Oils,oil@pureessence.lk,+94771234587,"70 Essential Road, Hanwella",admin,1333,399422.81,2026-06-04T10:00:00.000Z
+88,HerbalCure Lanka,cure@herbalcure.lk,+94771234588,"36 Herb Road, Hanwella",admin,4334,17085.93,2026-06-02T05:00:00.000Z
+89,Ayurveda Plus,ayur@ayurvedaplus.lk,+94771234589,"99 Ayurvedic Road, Hanwella",admin,4751,183923.31,2026-06-02T04:00:00.000Z
+90,Wellness Hub Lanka,hub@wellnesshub.lk,+94771234590,"54 Spa Road, Hanwella",admin,3527,33708.78,2026-06-01T01:00:00.000Z
+91,MedCare Supplies,med@medcare.lk,+94771234591,"19 Bandage Road, Hanwella",admin,3986,240139.15,2026-06-01T14:00:00.000Z
+92,FirstAid Lanka,help@firstaid.lk,+94771234592,"85 Emergency Road, Hanwella",admin,1945,243937.36,2026-06-02T08:00:00.000Z
+93,SafeGuard Protection,safe@safeguard.lk,+94771234593,"40 Shield Road, Hanwella",admin,3565,18482.73,2026-06-03T01:00:00.000Z
+94,SecureLife Lanka,secure@securelife.lk,+94771234594,"6 Lock Road, Hanwella",admin,2410,398630.92,2026-06-01T19:00:00.000Z
+95,SmartHome Lanka,smart@smarthome.lk,+94771234595,"73 IoT Road, Hanwella",admin,2791,47103.45,2026-06-02T18:00:00.000Z
+96,TechLife Electronics,tech@techlife.lk,+94771234596,"11 Gadget Road, Hanwella",admin,3797,122070.2,2026-06-03T22:00:00.000Z
+97,DigitalWorld Lanka,digital@digitalworld.lk,+94771234597,"56 Byte Road, Hanwella",admin,2460,18294.74,2026-06-02T08:00:00.000Z
+98,FutureTech Solutions,future@futuretech.lk,+94771234598,"30 Innovation Road, Hanwella",admin,1635,442462.81,2026-06-03T01:00:00.000Z
+99,CloudNine Services,cloud@cloudnine.lk,+94771234599,"88 Server Road, Hanwella",admin,2806,106525.5,2026-06-02T18:00:00.000Z
+100,DataStream Lanka,data@datastream.lk,+94771234600,"5 Fiber Road, Hanwella",admin,3880,227172.42,2026-06-05T16:00:00.000Z

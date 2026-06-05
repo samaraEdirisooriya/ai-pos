@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:dio/dio.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -9,6 +11,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/product.dart';
 import '../bloc/product_bloc.dart';
 import '../widgets/add_product_screen.dart';
+import '../../data/models/product_model.dart';
 
 class ProductsPage extends StatefulWidget {
   const ProductsPage({super.key});
@@ -20,18 +23,63 @@ class ProductsPage extends StatefulWidget {
 class _ProductsPageState extends State<ProductsPage> {
   final _searchCtrl = TextEditingController();
   final _searchFocusNode = FocusNode();
+  final Dio _dio = Dio();
+  final String _baseUrl = 'https://pos-backend.posai.workers.dev/api';
+  int _page = 1;
+  int _limit = 20;
+  int _total = 0;
+  bool _isLoadingMore = false;
+  final ScrollController _scrollController = ScrollController();
+  List<Product> _products = [];
 
   @override
   void initState() {
     super.initState();
     context.read<ProductBloc>().add(LoadProductsEvent());
+    _fetchProducts();
+    _scroll_controller_setup();
+  }
+
+  void _scroll_controller_setup(){
+    _scrollController.addListener(() {
+      if (_scrollController.position.maxScrollExtent - _scrollController.position.pixels < 300) {
+        if (!_isLoadingMore && (_total == 0 || _products.length < _total)) {
+          _fetchProducts(loadMore: true);
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
     _searchFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchProducts({bool loadMore = false}) async {
+    if (loadMore) {
+      _isLoadingMore = true;
+      _page += 1;
+    } else {
+      _page = 1;
+      _products.clear();
+      _isLoadingMore = false;
+    }
+    try {
+      final resp = await _dio.get('$_baseUrl/products', queryParameters: {'page': _page, 'limit': _limit});
+      if (resp.statusCode == 200 && resp.data['success'] == true) {
+        final List data = resp.data['data'];
+        final meta = resp.data['meta'] ?? {};
+        _total = meta['total'] ?? _total;
+        final loaded = data.map((e) => ProductModel.fromJson(e)).toList().cast<Product>();
+        setState(() {
+          _products.addAll(loaded);
+        });
+      }
+    } catch (_) {}
+    setState(() { _isLoadingMore = false; });
   }
 
   void _onSearch(String query) {
@@ -211,19 +259,19 @@ class _ProductsPageState extends State<ProductsPage> {
               ),
         );
 
-        return CustomScrollView(
+        return ListView(
+          controller: _scrollController,
           physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: headerContent,
-            ),
-            SliverFillRemaining(
-              hasScrollBody: true,
-              child: BlocBuilder<ProductBloc, ProductState>(
+          padding: EdgeInsets.zero,
+          children: [
+            headerContent,
+            BlocBuilder<ProductBloc, ProductState>(
             builder: (context, state) {
               if (state is ProductLoading) {
                 return GridView.builder(
                   padding: const EdgeInsets.all(24),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 180,
                     childAspectRatio: 0.60,
@@ -294,15 +342,17 @@ class _ProductsPageState extends State<ProductsPage> {
 
                 return GridView.builder(
                   padding: const EdgeInsets.all(24),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 180,
                     childAspectRatio: 0.60,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
-                  itemCount: products.length,
+                  itemCount: _products.length,
                   itemBuilder: (context, index) {
-                    final product = products[index];
+                    final product = _products[index];
                     return Container(
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.08),
@@ -324,10 +374,11 @@ class _ProductsPageState extends State<ProductsPage> {
                               child: product.productUrl.isNotEmpty
                                 ? ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      product.productUrl,
+                                    child: CachedNetworkImage(
+                                      imageUrl: product.productUrl,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (ctx, err, _) => const Icon(Icons.image, size: 24, color: Colors.white24),
+                                      placeholder: (c, u) => Container(color: Colors.white12),
+                                      errorWidget: (c, u, e) => const Icon(Icons.image, size: 24, color: Colors.white24),
                                     ),
                                   )
                                 : const Icon(Icons.image, size: 24, color: Colors.white24),
@@ -482,9 +533,14 @@ class _ProductsPageState extends State<ProductsPage> {
               return const SizedBox();
             },
           ),
-        ),
-      ],
+          if (_isLoadingMore)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: SizedBox(height: 48, child: Center(child: CircularProgressIndicator())),
+            ),
+          ],
+        );
+      },
     );
-    });
   }
 }
