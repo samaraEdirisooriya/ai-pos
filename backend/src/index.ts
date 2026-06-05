@@ -594,6 +594,31 @@ export default {
           return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
         }
       }
+
+    // GET /api/sales/stats (Get sales statistics - count, revenue, profit)
+    if (url.pathname === "/api/sales/stats" && request.method === "GET") {
+      try {
+        const countRes = await env.DB.prepare("SELECT COUNT(*) as count FROM SALES").first();
+        const revenueRes = await env.DB.prepare("SELECT SUM(total_price) as total FROM SALES").first();
+        const profitRes = await env.DB.prepare("SELECT SUM(profit) as total FROM SALES").first();
+        
+        const salesCount = (countRes as any)?.count || 0;
+        const totalRevenue = (revenueRes as any)?.total || 0;
+        const totalProfit = (profitRes as any)?.total || 0;
+
+        return Response.json({ 
+          success: true, 
+          data: {
+            sales_count: salesCount,
+            total_revenue: totalRevenue,
+            total_profit: totalProfit,
+            profit_percentage: totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : 0
+          }
+        }, { headers: corsHeaders });
+      } catch (error: any) {
+        return Response.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+      }
+    }
     
     // POST /api/scanner/submit (Append scan to session list in KV)
     if (url.pathname === "/api/scanner/submit" && request.method === "POST") {

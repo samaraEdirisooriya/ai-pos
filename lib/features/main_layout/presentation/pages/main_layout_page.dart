@@ -12,6 +12,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/services/dashboard_service.dart';
 import '../../../ai_chat/presentation/pages/ai_chat_page.dart';
 import '../../../pos/presentation/pages/pos_content.dart';
 import '../../../pos/presentation/bloc/pos_bloc.dart';
@@ -37,11 +38,11 @@ import '../../../clients/data/clients_api.dart';
 
 /// Represents each module / navigation card
 enum NavModule {
-  posTerminal(Icons.point_of_sale, 'POS Terminal', '37', '/63', '%'),
+  posTerminal(Icons.point_of_sale, 'POS Terminal', '0', '', 'sales'),
   product(Icons.inventory_2, 'Products', '44', '', 'items'),
   stocks(Icons.store, 'Stocks', '40', '', 'units'),
   supplier(Icons.local_shipping, 'Supplier', '78', '', 'active'),
-  user(Icons.person, 'Clients', '4', '/5', 'online'),
+  user(Icons.person, 'Clients', '4', '', ''),
   ai(Icons.smart_toy, 'AI Assistant', '85', '', '%');
 
   final IconData icon;
@@ -67,6 +68,53 @@ class _MainLayoutPageState extends State<MainLayoutPage>
   // Bottom panel height states
   double? _panelCurrentHeight;
   bool _isFullScreen = false;
+
+  // Dashboard data
+  late DashboardService _dashboardService;
+  int _productsCount = 0;
+  int _stocksCount = 0;
+  int _suppliersCount = 0;
+  int _clientsCount = 0;
+  int _salesCount = 0;
+  double _totalRevenue = 0.0;
+  double _totalProfit = 0.0;
+  bool _loadingStats = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _dashboardService = DashboardService(dio: Dio());
+    _fetchDashboardStats();
+  }
+
+  Future<void> _fetchDashboardStats() async {
+    try {
+      final products = await _dashboardService.getProductsCount();
+      final stocks = await _dashboardService.getStocksCount();
+      final suppliers = await _dashboardService.getSuppliersCount();
+      final clients = await _dashboardService.getClientsCount();
+      final sales = await _dashboardService.getSalesCount();
+      final revenue = await _dashboardService.getTotalRevenue();
+      final profit = await _dashboardService.getTotalProfit();
+
+      if (mounted) {
+        setState(() {
+          _productsCount = products;
+          _stocksCount = stocks;
+          _suppliersCount = suppliers;
+          _clientsCount = clients;
+          _salesCount = sales;
+          _totalRevenue = revenue;
+          _totalProfit = profit;
+          _loadingStats = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loadingStats = false);
+      }
+    }
+  }
 
   void _selectModule(NavModule module) {
     setState(() => _selectedModule = module);
@@ -607,8 +655,8 @@ class _MainLayoutPageState extends State<MainLayoutPage>
               child: GridView.builder(
                 padding: EdgeInsets.zero,
                 gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: isMobile ? 160 : 260,
-                  childAspectRatio: isMobile ? 1.8 : 2.0,
+                  maxCrossAxisExtent: isMobile ? 160 : 280, // Added responsive max width
+                  childAspectRatio: isMobile ? 1.8 : 2.2, // Adjusted for POS card with 2 rows
                   crossAxisSpacing: isMobile ? 8 : 12,
                   mainAxisSpacing: isMobile ? 8 : 12,
                 ),
@@ -616,6 +664,8 @@ class _MainLayoutPageState extends State<MainLayoutPage>
                 itemBuilder: (context, index) {
                   final m = NavModule.values[index];
                   final isSelected = _selectedModule == m;
+                  final displayValue = _getDisplayValue(m);
+                  
                   return GestureDetector(
                     onTap: () => _selectModule(m),
                     child: AnimatedContainer(
@@ -669,41 +719,115 @@ class _MainLayoutPageState extends State<MainLayoutPage>
                                 ),
                               ],
                             ),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Flexible(
-                                  child: Text(m.mainValue,
-                                      style: GoogleFonts.inter(
-                                          fontSize: isMobile ? 18 : 28,
-                                          fontWeight: FontWeight.w400,
-                                          color: isSelected
-                                              ? Colors.white
-                                              : AppColors.textPrimary)),
+                            // For POS Terminal, show stacked layout with sales count and total
+                            if (m == NavModule.posTerminal)
+                              SizedBox(
+                                height: isMobile ? 70 : 75,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    // Sales count row
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
+                                      children: [
+                                        Flexible(
+                                          child: Text(displayValue,
+                                              style: GoogleFonts.inter(
+                                                  fontSize: isMobile ? 16 : 24,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: isSelected
+                                                      ? Colors.white
+                                                      : AppColors.textPrimary),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text('sales',
+                                            style: GoogleFonts.inter(
+                                                fontSize: isMobile ? 8 : 10,
+                                                color: isSelected
+                                                    ? Colors.white54
+                                                    : AppColors.textSecondary),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    // Revenue row
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
+                                      children: [
+                                        Flexible(
+                                          child: Text(_formatLargeNumber(_totalRevenue),
+                                              style: GoogleFonts.inter(
+                                                  fontSize: isMobile ? 14 : 20,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: isSelected
+                                                      ? Colors.white
+                                                      : AppColors.textPrimary),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(_getPosUnit(),
+                                            style: GoogleFonts.inter(
+                                                fontSize: isMobile ? 8 : 10,
+                                                fontWeight: FontWeight.w500,
+                                                color: isSelected
+                                                    ? Colors.white54
+                                                    : AppColors.textSecondary),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis),
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                                if (m.subValue.isNotEmpty)
+                              )
+                            else
+                              // Standard layout for other cards
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
                                   Flexible(
-                                    child: Text(m.subValue,
+                                    child: Text(displayValue,
                                         style: GoogleFonts.inter(
-                                            fontSize: isMobile ? 12 : 20,
+                                            fontSize: isMobile ? 18 : 28,
                                             fontWeight: FontWeight.w400,
                                             color: isSelected
-                                                ? Colors.white54
-                                                : AppColors.textSecondary)),
+                                                ? Colors.white
+                                                : AppColors.textPrimary),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis),
                                   ),
-                                const SizedBox(width: 2),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.only(bottom: 2.0),
-                                  child: Text(m.unit,
-                                      style: GoogleFonts.inter(
-                                          fontSize: isMobile ? 8 : 12,
-                                          color: isSelected
-                                              ? Colors.white54
-                                              : AppColors.textSecondary)),
-                                ),
-                              ],
-                            ),
+                                  if (m.subValue.isNotEmpty)
+                                    Flexible(
+                                      child: Text(m.subValue,
+                                          style: GoogleFonts.inter(
+                                              fontSize: isMobile ? 12 : 20,
+                                              fontWeight: FontWeight.w400,
+                                              color: isSelected
+                                                  ? Colors.white54
+                                                  : AppColors.textSecondary),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis),
+                                    ),
+                                  const SizedBox(width: 2),
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 2.0),
+                                    child: Text(m.unit,
+                                        style: GoogleFonts.inter(
+                                            fontSize: isMobile ? 8 : 12,
+                                            color: isSelected
+                                                ? Colors.white54
+                                                : AppColors.textSecondary),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis),
+                                  ),
+                                ],
+                              ),
                           ],
                         ),
                       ),
@@ -925,5 +1049,46 @@ class _MainLayoutPageState extends State<MainLayoutPage>
         ),
       ],
     );
+  }
+
+  // Helper method to get display value for each card based on real data
+  String _getDisplayValue(NavModule module) {
+    if (_loadingStats) return '...';
+    
+    switch (module) {
+      case NavModule.posTerminal:
+        return _salesCount.toString(); // Show sales count on POS card
+      case NavModule.product:
+        return _productsCount.toString();
+      case NavModule.stocks:
+        return _stocksCount.toString();
+      case NavModule.supplier:
+        return _suppliersCount.toString();
+      case NavModule.user:
+        return _clientsCount.toString();
+      case NavModule.ai:
+        return '85'; // AI assistant statistic
+    }
+  }
+
+  // Helper method to get profit percentage
+  String _getPosUnit() {
+    if (_loadingStats) return '';
+    if (_totalRevenue == 0) return '0%';
+    final profitPercent = ((_totalProfit / _totalRevenue) * 100).toStringAsFixed(0);
+    return '$profitPercent%';
+  }
+
+  // Format large numbers with K, M, B suffixes
+  String _formatLargeNumber(double value) {
+    if (value >= 1000000000) {
+      return '${(value / 1000000000).toStringAsFixed(1)}B';
+    } else if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(1)}M';
+    } else if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(1)}K';
+    } else {
+      return value.toStringAsFixed(0);
+    }
   }
 }

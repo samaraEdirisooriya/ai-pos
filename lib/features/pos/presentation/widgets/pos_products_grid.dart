@@ -421,9 +421,14 @@ class _PosProductsGridState extends State<PosProductsGrid> {
               style: GoogleFonts.inter(
                 fontSize: isMobile ? 12 : 14,
                 fontWeight: FontWeight.w700,
-                color: AppColors.primary)),
+                color: AppColors.primary),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
         const SizedBox(height: 4),
-          Text('Stock: ${product.stockCount}', style: GoogleFonts.inter(fontSize: isMobile ? 11 : 12, color: Colors.white70, fontWeight: FontWeight.w600)),
+          Text('Stock: ${product.stockCount}', 
+            style: GoogleFonts.inter(fontSize: isMobile ? 11 : 12, color: Colors.white70, fontWeight: FontWeight.w600),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis),
         ],
       ),
     );

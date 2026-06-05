@@ -325,35 +325,44 @@ class _PosCartSectionState extends State<PosCartSection> {
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('TOTAL',
-                                style: GoogleFonts.inter(
-                                    fontSize: 10, color: Colors.white54)),
-                            Text(_lkr.format(state.total),
-                                style: GoogleFonts.inter(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.primary,
-                                )),
-                          ],
+                        Flexible(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('TOTAL',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 10, color: Colors.white54)),
+                              Flexible(
+                                child: Text(_lkr.format(state.total),
+                                    style: GoogleFonts.inter(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         SizedBox(
                           height: 32,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: AppColors.primary,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16)),
                             ),
                             onPressed: state.cartItems.isEmpty ? null : () => _handleCharge(context, state),
                             child: Text('CHARGE',
                                 style: GoogleFonts.inter(
-                                    fontSize: 11, fontWeight: FontWeight.w800)),
+                                    fontSize: 11, fontWeight: FontWeight.w800),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
                           ),
                         ),
                       ],
@@ -443,7 +452,9 @@ class _PosCartSectionState extends State<PosCartSection> {
                           onPressed: state.cartItems.isEmpty ? null : () => _handleCharge(context, state),
                           child: Text('Charge',
                               style: GoogleFonts.inter(
-                                  fontSize: 13, fontWeight: FontWeight.w700)),
+                                  fontSize: 13, fontWeight: FontWeight.w700),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
                         ),
                       ),
                     ],
