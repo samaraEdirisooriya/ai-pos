@@ -53,27 +53,31 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
       final url = 'https://pos-backend.posai.workers.dev/api/suppliers' + (q != null && q.isNotEmpty ? '?q=${Uri.encodeComponent(q)}&page=1&limit=$_limit' : '?page=$_page&limit=$_limit');
       final resp = await _dio.get(url);
       final data = resp.data;
-      if (data != null && data['success'] == true) {
+      if (mounted && data != null && data['success'] == true) {
         final List newItems = List.from(data['data'] ?? []);
         final meta = data['meta'] ?? {};
-        setState(() {
-          if (q != null && q.isNotEmpty) {
-            _suppliers = newItems;
-            _page = 1;
-            _isLoadingMore = false;
-          } else {
-            if (_page == 1) _suppliers = newItems; else _suppliers.addAll(newItems);
-          }
-          _total = meta['total'] ?? _suppliers.length;
-        });
+        if (mounted) {
+          setState(() {
+            if (q != null && q.isNotEmpty) {
+              _suppliers = newItems;
+              _page = 1;
+              _isLoadingMore = false;
+            } else {
+              if (_page == 1) _suppliers = newItems; else _suppliers.addAll(newItems);
+            }
+            _total = meta['total'] ?? _suppliers.length;
+          });
+        }
       }
     } catch (e) {
       // ignore
     }
-    setState(() { 
-      _loading = false;
-      _isLoadingMore = false;
-    });
+    if (mounted) {
+      setState(() { 
+        _loading = false;
+        _isLoadingMore = false;
+      });
+    }
   }
 
   Future<void> _openAddSupplier() async {

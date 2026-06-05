@@ -69,17 +69,21 @@ class _ProductsPageState extends State<ProductsPage> {
     }
     try {
       final resp = await _dio.get('$_baseUrl/products', queryParameters: {'page': _page, 'limit': _limit});
-      if (resp.statusCode == 200 && resp.data['success'] == true) {
+      if (mounted && resp.statusCode == 200 && resp.data['success'] == true) {
         final List data = resp.data['data'];
         final meta = resp.data['meta'] ?? {};
         _total = meta['total'] ?? _total;
         final loaded = data.map((e) => ProductModel.fromJson(e)).toList().cast<Product>();
-        setState(() {
-          _products.addAll(loaded);
-        });
+        if (mounted) {
+          setState(() {
+            _products.addAll(loaded);
+          });
+        }
       }
     } catch (_) {}
-    setState(() { _isLoadingMore = false; });
+    if (mounted) {
+      setState(() { _isLoadingMore = false; });
+    }
   }
 
   void _onSearch(String query) {

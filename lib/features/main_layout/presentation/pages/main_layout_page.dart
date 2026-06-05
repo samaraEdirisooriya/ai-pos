@@ -17,6 +17,7 @@ import '../../../ai_chat/presentation/pages/ai_chat_page.dart';
 import '../../../pos/presentation/pages/pos_content.dart';
 import '../../../pos/presentation/bloc/pos_bloc.dart';
 import '../../../pos/presentation/pages/pos_panel.dart';
+import '../../../dashboard/presentation/pages/about_page.dart';
 
 // Import Products feature
 import '../../../products/data/datasources/product_remote_data_source.dart';
@@ -43,7 +44,8 @@ enum NavModule {
   stocks(Icons.store, 'Stocks', '40', '', 'units'),
   supplier(Icons.local_shipping, 'Supplier', '78', '', 'active'),
   user(Icons.person, 'Clients', '4', '', ''),
-  ai(Icons.smart_toy, 'AI Assistant', '85', '', '%');
+  ai(Icons.smart_toy, 'AI Assistant', '85', '', '%'),
+  about(Icons.info_outline, 'About', '', '', '');
 
   final IconData icon;
   final String label;
@@ -643,7 +645,6 @@ class _MainLayoutPageState extends State<MainLayoutPage>
                   children: [
                     _tabLabel(context, 'Dashboard', true),
                     const SizedBox(width: 28),
-                    _tabLabel(context, 'About', false),
                   ],
                 ),
               ),
@@ -1015,6 +1016,8 @@ class _MainLayoutPageState extends State<MainLayoutPage>
           create: (_) => ClientsBloc(api: ClientsApi())..add(const FetchClients()),
           child: const ClientsPage(),
         );
+      case NavModule.about:
+        return const AboutPage();
     }
   }
 
@@ -1068,6 +1071,8 @@ class _MainLayoutPageState extends State<MainLayoutPage>
         return _clientsCount.toString();
       case NavModule.ai:
         return '85'; // AI assistant statistic
+      case NavModule.about:
+        return ''; // About page has no metric
     }
   }
 
