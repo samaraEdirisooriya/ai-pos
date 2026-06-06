@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,9 +12,7 @@ import 'package:toastification/toastification.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/active_scanner.dart';
-import '../../../../core/services/scan_broadcast.dart';
 import '../../domain/entities/product.dart' as PosProduct;
-import '../../../stocks/data/models/stock_item.dart';
 import '../bloc/pos_bloc.dart';
 import '../widgets/pos_cart_section.dart';
 import '../widgets/pos_products_grid.dart';

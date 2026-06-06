@@ -1032,7 +1032,7 @@ class _StocksPageState extends State<StocksPage> {
 }
 
 class _ShimmerBox extends StatefulWidget {
-  const _ShimmerBox({super.key});
+  const _ShimmerBox();
   @override
   State<_ShimmerBox> createState() => _ShimmerBoxState();
 }

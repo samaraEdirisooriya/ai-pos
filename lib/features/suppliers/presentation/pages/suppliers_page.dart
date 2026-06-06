@@ -1,14 +1,9 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_builder/responsive_builder.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/services/active_scanner.dart';
 import 'supplier_detail_page.dart';
 import 'add_supplier_screen.dart';
-import '../../../../core/services/scan_broadcast.dart';
-import 'package:toastification/toastification.dart';
 
 class SuppliersPage extends StatefulWidget {
   const SuppliersPage({super.key});

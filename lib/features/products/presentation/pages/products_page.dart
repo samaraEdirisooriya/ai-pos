@@ -7,7 +7,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:responsive_builder/responsive_builder.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/product.dart';

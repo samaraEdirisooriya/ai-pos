@@ -9,7 +9,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/product.dart';
 import '../bloc/pos_bloc.dart';
 import 'package:dio/dio.dart';
-import 'package:toastification/toastification.dart';
 import 'dart:ui';
 import '../../../clients/presentation/pages/add_client_screen.dart';
 import '../../../clients/data/clients_api.dart';
