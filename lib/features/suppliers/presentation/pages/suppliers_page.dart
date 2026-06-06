@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:responsive_builder/responsive_builder.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/active_scanner.dart';
 import 'supplier_detail_page.dart';
@@ -22,7 +23,7 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
   bool _isLoadingMore = false;
   final TextEditingController _searchController = TextEditingController();
   int _page = 1;
-  int _limit = 20;
+  final int _limit = 20;
   int _total = 0;
   final ScrollController _scrollController = ScrollController();
 
@@ -50,7 +51,7 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
   Future<void> _fetchSuppliers({String? q}) async {
     setState(() => _loading = true);
     try {
-      final url = 'https://pos-backend.posai.workers.dev/api/suppliers' + (q != null && q.isNotEmpty ? '?q=${Uri.encodeComponent(q)}&page=1&limit=$_limit' : '?page=$_page&limit=$_limit');
+      final url = 'https://pos-backend.posai.workers.dev/api/suppliers${q != null && q.isNotEmpty ? '?q=${Uri.encodeComponent(q)}&page=1&limit=$_limit' : '?page=$_page&limit=$_limit'}';
       final resp = await _dio.get(url);
       final data = resp.data;
       if (mounted && data != null && data['success'] == true) {
@@ -63,7 +64,11 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
               _page = 1;
               _isLoadingMore = false;
             } else {
-              if (_page == 1) _suppliers = newItems; else _suppliers.addAll(newItems);
+              if (_page == 1) {
+                _suppliers = newItems;
+              } else {
+                _suppliers.addAll(newItems);
+              }
             }
             _total = meta['total'] ?? _suppliers.length;
           });
@@ -139,29 +144,37 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isMobile = constraints.maxWidth < 600;
+    return ResponsiveBuilder(
+      builder: (context, sizingInformation) {
+        final isMobile = sizingInformation.deviceScreenType == DeviceScreenType.mobile;
+        final isTablet = sizingInformation.deviceScreenType == DeviceScreenType.tablet;
+        final padding = isMobile ? 12.0 : (isTablet ? 20.0 : 24.0);
+        final horizontalPadding = isMobile ? 12.0 : (isTablet ? 16.0 : 24.0);
 
         Widget headerContent = Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: padding,
+          ),
           child: isMobile
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 12,
                   children: [
                     _buildSearchField(),
-                    const SizedBox(height: 12),
                     _buildAddButton(),
                   ],
                 )
               : Row(
+                  spacing: 16,
                   children: [
                     Expanded(child: _buildSearchField()),
-                    const SizedBox(width: 12),
                     _buildAddButton(),
                   ],
                 ),
         );
+
+        final crossAxisCount = isMobile ? 1 : (isTablet ? 2 : 3);
 
         return ListView(
           controller: _scrollController,
@@ -171,82 +184,120 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
             headerContent,
             _loading && _suppliers.isEmpty
               ? GridView.builder(
-                  padding: EdgeInsets.all(isMobile ? 12 : 24),
+                  padding: EdgeInsets.all(padding),
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: isMobile ? double.infinity : 200,
-                    childAspectRatio: isMobile ? 3.2 : 1.5,
-                    crossAxisSpacing: isMobile ? 8 : 16,
-                    mainAxisSpacing: isMobile ? 8 : 16,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    childAspectRatio: 3.2,
+                    crossAxisSpacing: padding,
+                    mainAxisSpacing: padding,
                   ),
                   itemCount: 8,
                   itemBuilder: (context, index) => _buildShimmerCard(),
                 )
-            : Column(
-                children: [
-                  GridView.builder(
-                    padding: EdgeInsets.all(isMobile ? 12 : 24),
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: isMobile ? double.infinity : 200,
-                      childAspectRatio: isMobile ? 3.2 : 1.5,
-                      crossAxisSpacing: isMobile ? 8 : 16,
-                      mainAxisSpacing: isMobile ? 8 : 16,
+              : Column(
+                  children: [
+                    GridView.builder(
+                      padding: EdgeInsets.all(padding),
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        childAspectRatio: 3.2,
+                        crossAxisSpacing: padding,
+                        mainAxisSpacing: padding,
+                      ),
+                      itemCount: _suppliers.length,
+                      itemBuilder: (context, index) {
+                        final s = _suppliers[index];
+                        return InkWell(
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SupplierDetailPage(supplierId: s['supplier_id']))),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: padding,
+                              vertical: padding * 0.75,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.08),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              spacing: padding,
+                              children: [
+                                Container(
+                                  width: isMobile ? 40 : 48,
+                                  height: isMobile ? 40 : 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.04),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.local_shipping,
+                                      size: 24,
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    spacing: 2,
+                                    children: [
+                                      Text(
+                                        s['name'] ?? '',
+                                        style: GoogleFonts.inter(
+                                          fontSize: isMobile ? 13 : 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        s['email'] ?? '-',
+                                        style: GoogleFonts.inter(
+                                          color: Colors.white54,
+                                          fontSize: isMobile ? 11 : 12,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: Colors.white54,
+                                  size: isMobile ? 16 : 18,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    itemCount: _suppliers.length,
-                    itemBuilder: (context, index) {
-                      final s = _suppliers[index];
-                      return InkWell(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SupplierDetailPage(supplierId: s['supplier_id']))),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 48,
+                    if (_suppliers.length < _total)
+                      Padding(
+                        padding: EdgeInsets.all(padding),
+                        child: _isLoadingMore
+                            ? const SizedBox(
                                 height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.04),
-                                  borderRadius: BorderRadius.circular(10),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
                                 ),
-                                child: const Center(child: Icon(Icons.local_shipping, size: 24, color: Colors.white70)),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(s['name'] ?? '', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                    const SizedBox(height: 4),
-                                    Text(s['email'] ?? '-', style: GoogleFonts.inter(color: Colors.white54, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.chevron_right, color: Colors.white54, size: 18),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  if (_suppliers.length < _total)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: _loading
-                          ? SizedBox(height: 48, child: Center(child: CircularProgressIndicator()))
-                          : const SizedBox.shrink(),
-                    )
-                ],
-              ),
+                              )
+                            : const SizedBox.shrink(),
+                      )
+                  ],
+                ),
           ],
         );
       },
@@ -262,7 +313,7 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
             return LinearGradient(
               begin: Alignment(-1.0 - (1.0 - _shimmerController.value) * 2, 0),
               end: Alignment(1.0 + (1.0 - _shimmerController.value) * 2, 0),
-              colors: [Colors.white.withOpacity(0.06), Colors.white.withOpacity(0.18), Colors.white.withOpacity(0.06)],
+              colors: [Colors.white.withValues(alpha: 0.06), Colors.white.withValues(alpha: 0.18), Colors.white.withValues(alpha: 0.06)],
               stops: const [0.25, 0.5, 0.75],
             ).createShader(rect);
           },
@@ -275,16 +326,16 @@ class _SuppliersPageState extends State<SuppliersPage> with SingleTickerProvider
             ),
             child: Row(
               children: [
-                Container(width: 48, height: 48, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(10))),
+                Container(width: 48, height: 48, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(10))),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(height: 14, width: double.infinity, color: Colors.white.withOpacity(0.05)),
+                      Container(height: 14, width: double.infinity, color: Colors.white.withValues(alpha: 0.05)),
                       const SizedBox(height: 8),
-                      Container(height: 10, width: 100, color: Colors.white.withOpacity(0.05)),
+                      Container(height: 10, width: 100, color: Colors.white.withValues(alpha: 0.05)),
                     ],
                   ),
                 ),

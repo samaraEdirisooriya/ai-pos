@@ -9,9 +9,9 @@ class AiChatWidget extends StatefulWidget {
   final String apiBase;
 
   const AiChatWidget({
-    Key? key,
+    super.key,
     this.apiBase = 'https://pos-backend.posai.workers.dev',
-  }) : super(key: key);
+  });
 
   @override
   State<AiChatWidget> createState() => _AiChatWidgetState();
@@ -127,7 +127,7 @@ class _AiChatWidgetState extends State<AiChatWidget>
                     children: [
                       Icon(
                         Icons.chat_bubble_outline,
-                        color: AppColors.textSecondary.withOpacity(0.28),
+                        color: AppColors.textSecondary.withValues(alpha: 0.28),
                         size: 56,
                       ),
                       const SizedBox(height: 16),
@@ -170,9 +170,9 @@ class _AiChatWidgetState extends State<AiChatWidget>
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.surface.withOpacity(0.10),
+                color: AppColors.surface.withValues(alpha: 0.10),
                 border: Border(
-                  top: BorderSide(color: AppColors.border.withOpacity(0.12)),
+                  top: BorderSide(color: AppColors.border.withValues(alpha: 0.12)),
                 ),
               ),
               child: Row(
@@ -190,14 +190,14 @@ class _AiChatWidgetState extends State<AiChatWidget>
                         hintText: 'Ask about your business...',
                         hintStyle: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.04),
+                        fillColor: Colors.white.withValues(alpha: 0.04),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.white.withOpacity(0.18)),
+                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.white.withOpacity(0.18)),
+                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -217,8 +217,8 @@ class _AiChatWidgetState extends State<AiChatWidget>
                       filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppColors.secondary.withOpacity(0.20),
-                          border: Border.all(color: Colors.white.withOpacity(0.18)),
+                          color: AppColors.secondary.withValues(alpha: 0.20),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
@@ -228,7 +228,7 @@ class _AiChatWidgetState extends State<AiChatWidget>
                                   height: 22,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.9)),
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withValues(alpha: 0.9)),
                                   ),
                                 )
                               : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
@@ -259,8 +259,8 @@ class _AiChatWidgetState extends State<AiChatWidget>
                 child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary.withOpacity(0.14),
-                  border: Border.all(color: Colors.white.withOpacity(0.18)),
+                  color: AppColors.secondary.withValues(alpha: 0.14),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -280,7 +280,7 @@ class _AiChatWidgetState extends State<AiChatWidget>
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(opacity),
+                            color: Colors.white.withValues(alpha: opacity),
                           ),
                         );
                       },
@@ -306,8 +306,11 @@ class _AiChatWidgetState extends State<AiChatWidget>
           onTap: () {
             if (index != null) {
               setState(() {
-                if (_selectedMessageIndex == index) _selectedMessageIndex = null;
-                else _selectedMessageIndex = index;
+                if (_selectedMessageIndex == index) {
+                  _selectedMessageIndex = null;
+                } else {
+                  _selectedMessageIndex = index;
+                }
               });
             }
           },
@@ -319,9 +322,9 @@ class _AiChatWidgetState extends State<AiChatWidget>
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: isUser
-                      ? AppColors.secondary.withOpacity(0.46)
-                      : (message.isError ? AppColors.error.withOpacity(0.12) : Colors.white.withOpacity(0.06)),
-                  border: Border.all(color: selected ? Colors.white.withOpacity(0.95) : Colors.white.withOpacity(0.06), width: selected ? 1.4 : 1.0),
+                      ? AppColors.secondary.withValues(alpha: 0.46)
+                      : (message.isError ? AppColors.error.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.06)),
+                  border: Border.all(color: selected ? Colors.white.withValues(alpha: 0.95) : Colors.white.withValues(alpha: 0.06), width: selected ? 1.4 : 1.0),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
@@ -340,7 +343,7 @@ class _AiChatWidgetState extends State<AiChatWidget>
                     Text(
                       _formatTime(message.timestamp),
                       style: GoogleFonts.inter(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 10,
                         fontWeight: FontWeight.w400,
                       ),

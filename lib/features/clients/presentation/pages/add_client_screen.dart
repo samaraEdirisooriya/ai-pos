@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -96,16 +95,38 @@ class _AddClientScreenState extends State<AddClientScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             decoration: const BoxDecoration(color: Colors.black, boxShadow: [BoxShadow(color: Colors.black45, blurRadius: 15, offset: Offset(0, 10))]),
-            child: Row(
-              children: [
-                IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.of(context).pop()),
-                const SizedBox(width: 24),
-                Text('Add User', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white)),
-                const Spacer(),
-                _isSaving
-                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : ElevatedButton(onPressed: _save, style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black), child: Text('Save'))
-              ],
+            child: Builder(
+              builder: (context) {
+                bool isMobileHeader = MediaQuery.of(context).size.width < 600;
+                return isMobileHeader
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.of(context).pop()),
+                              const SizedBox(width: 16),
+                              Expanded(child: Text('Add User', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white))),
+                            ]
+                          ),
+                          const SizedBox(height: 16),
+                          _isSaving
+                              ? const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : ElevatedButton(onPressed: _save, style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(vertical: 16)), child: Text('Save')),
+                        ]
+                      )
+                    : Row(
+                        children: [
+                          IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.of(context).pop()),
+                          const SizedBox(width: 24),
+                          Text('Add User', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white)),
+                          const Spacer(),
+                          _isSaving
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : ElevatedButton(onPressed: _save, style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black), child: Text('Save'))
+                        ],
+                      );
+              }
             ),
           ),
 

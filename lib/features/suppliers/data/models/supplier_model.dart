@@ -1,7 +1,7 @@
 import '../../domain/entities/supplier.dart';
 
 class SupplierModel extends Supplier {
-  SupplierModel({
+  const SupplierModel({
     required super.supplierId,
     required super.name,
     required super.email,

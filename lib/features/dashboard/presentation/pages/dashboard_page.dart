@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -52,7 +52,8 @@ class DashboardPage extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 12,
-                          backgroundImage: CachedNetworkImageProvider('https://i.pravatar.cc/100?img=11'),
+                          backgroundColor: Colors.white24,
+                          child: const Icon(Icons.person, size: 14, color: Colors.white),
                         ),
                         const SizedBox(width: 8),
                         Column(
@@ -110,7 +111,7 @@ class DashboardPage extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            CircleAvatar(radius: 16, backgroundImage: CachedNetworkImageProvider('https://i.pravatar.cc/100?img=5')),
+                            CircleAvatar(radius: 16, backgroundColor: Colors.white24, child: const Icon(Icons.person, size: 16, color: Colors.white70)),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -123,7 +124,7 @@ class DashboardPage extends StatelessWidget {
                             ),
                             const Icon(Icons.play_arrow, size: 16),
                             const SizedBox(width: 12),
-                            CircleAvatar(radius: 16, backgroundImage: CachedNetworkImageProvider('https://i.pravatar.cc/100?img=12')),
+                            CircleAvatar(radius: 16, backgroundColor: Colors.white24, child: const Icon(Icons.person, size: 16, color: Colors.white70)),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -281,9 +282,9 @@ class DashboardPage extends StatelessWidget {
                         const SizedBox(height: 32),
                         Text('Description', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
                         const SizedBox(height: 16),
-                        _buildTranscriptRow('Halle Griffiths', 'Hello this is Lydia from Northwind. How are you?', '00:00:24', 'https://i.pravatar.cc/100?img=5'),
+                        _buildTranscriptRow('Halle Griffiths', 'Hello this is Lydia from Northwind. How are you?', '00:00:24'),
                         const SizedBox(height: 16),
-                        _buildTranscriptRow('Halle Griffiths', 'Good, how are you?', '00:00:36', 'https://i.pravatar.cc/100?img=12'),
+                        _buildTranscriptRow('Halle Griffiths', 'Good, how are you?', '00:00:36'),
                       ],
                     ),
                   ),
@@ -337,39 +338,53 @@ class DashboardPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                mainValue,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w400, // Lighter weight for big numbers
-                ),
-              ),
-              if (subValue.isNotEmpty)
-                Text(
-                  subValue,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w400,
+          Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Flexible(
+                  flex: 3,
+                  child: Text(
+                    mainValue,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w400, // Lighter weight for big numbers
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              const SizedBox(width: 4),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6.0),
-                child: Text(
-                  unit,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14,
+                if (subValue.isNotEmpty)
+                  Flexible(
+                    flex: 2,
+                    child: Text(
+                      subValue,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                const SizedBox(width: 4),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6.0),
+                  child: Text(
+                    unit,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           )
         ],
       ),
@@ -401,7 +416,7 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTranscriptRow(String name, String text, String time, String imgUrl) {
+  Widget _buildTranscriptRow(String name, String text, String time) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -411,7 +426,11 @@ class DashboardPage extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(radius: 16, backgroundImage: CachedNetworkImageProvider(imgUrl)),
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: Colors.white24,
+            child: const Icon(Icons.person, size: 16, color: Colors.white),
+          ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,

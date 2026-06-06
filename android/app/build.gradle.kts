@@ -44,7 +44,8 @@ android {
                 signingConfig = signingConfigs.create("release").apply {
                     keyAlias = keystoreProperties.getProperty("keyAlias")
                     keyPassword = keystoreProperties.getProperty("keyPassword")
-                    storeFile = file(keystoreProperties.getProperty("storeFile"))
+                    // Resolve storeFile relative to project root (parent of android/)
+                    storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
                     storePassword = keystoreProperties.getProperty("storePassword")
                 }
             } else {

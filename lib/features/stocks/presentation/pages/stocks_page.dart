@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:responsive_builder/responsive_builder.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/active_scanner.dart';
@@ -38,7 +40,7 @@ class _StocksPageState extends State<StocksPage> {
   StreamSubscription? _qrSubscription;
   bool _addStockOpen = false;
   int _page = 1;
-  int _limit = 20;
+  final int _limit = 20;
   int _total = 0;
   bool _isLoadingMore = false;
   final ScrollController _scrollController = ScrollController();
@@ -169,7 +171,7 @@ class _StocksPageState extends State<StocksPage> {
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (dialogContext, animation, secondaryAnimation) {
         return BackdropFilter(
@@ -239,7 +241,7 @@ class _StocksPageState extends State<StocksPage> {
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent.withOpacity(0.15),
+                              backgroundColor: Colors.redAccent.withValues(alpha: 0.15),
                               foregroundColor: Colors.redAccent,
                               elevation: 0,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -298,7 +300,7 @@ class _StocksPageState extends State<StocksPage> {
         matched = matches.isNotEmpty ? matches.first : null;
       }
       // Fallback to backend lookup when not in memory
-      if (matched == null) matched = await _lookupProductByKey(scannedCode);
+      matched ??= await _lookupProductByKey(scannedCode);
 
       if (matched != null) {
         _openAddStockScreen(matched);
@@ -403,7 +405,7 @@ class _StocksPageState extends State<StocksPage> {
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       transitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (dialogContext, a1, a2) {
         return Center(
@@ -483,7 +485,7 @@ class _StocksPageState extends State<StocksPage> {
                                                       matched = matches.isNotEmpty ? matches.first : null;
                                                     }
                                                     // Fallback to backend lookup when not in memory
-                                                    if (matched == null) matched = await _lookupProductByKey(code);
+                                                    matched ??= await _lookupProductByKey(code);
                                                     if (matched != null) {
                                                       ScanBroadcast.add(matched);
                                                       if (!_addStockOpen) _openAddStockScreen(matched);
@@ -760,31 +762,33 @@ class _StocksPageState extends State<StocksPage> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isMobile = constraints.maxWidth < 600;
+    return ResponsiveBuilder(
+      builder: (context, sizingInformation) {
+        final isMobile = sizingInformation.deviceScreenType == DeviceScreenType.mobile;
+        final isTablet = sizingInformation.deviceScreenType == DeviceScreenType.tablet;
+        final padding = isMobile ? 12.0 : (isTablet ? 16.0 : 24.0);
+        final horizontalPadding = isMobile ? 12.0 : (isTablet ? 16.0 : 24.0);
 
         Widget headerContent = Padding(
           padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 16.0 : 24.0,
-              vertical: isMobile ? 12.0 : 16.0),
+              horizontal: horizontalPadding,
+              vertical: padding),
           child: isMobile
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 12,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(child: _buildSearchBar()),
-                        const SizedBox(width: 8),
-                        _buildActionButtons(true),
-                      ],
+                    _buildSearchBar(),
+                    SizedBox(
+                      height: 48,
+                      child: _buildActionButtons(true),
                     ),
                   ],
                 )
               : Row(
+                  spacing: 16,
                   children: [
                     Expanded(child: _buildSearchBar()),
-                    const SizedBox(width: 16),
                     _buildActionButtons(false),
                   ],
                 ),
@@ -800,14 +804,14 @@ class _StocksPageState extends State<StocksPage> {
               builder: (context, state) {
                   if (state is StocksLoading) {
                     return GridView.builder(
-                      padding: EdgeInsets.all(isMobile ? 12 : 24),
+                      padding: EdgeInsets.all(padding),
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: isMobile ? double.infinity : 320,
-                        childAspectRatio: isMobile ? 3.5 : 1.8,
-                        crossAxisSpacing: isMobile ? 8 : 16,
-                        mainAxisSpacing: isMobile ? 8 : 16,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: isMobile ? 1 : (isTablet ? 2 : 3),
+                        childAspectRatio: 3.2,
+                        crossAxisSpacing: padding,
+                        mainAxisSpacing: padding,
                       ),
                       itemCount: 12,
                       itemBuilder: (context, index) {
@@ -869,9 +873,11 @@ class _StocksPageState extends State<StocksPage> {
                   } else if (state is StocksLoaded) {
                     if (_isLoadingMore) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) setState(() {
+                        if (mounted) {
+                          setState(() {
                           _isLoadingMore = false;
                         });
+                        }
                       });
                     }
 
@@ -900,15 +906,15 @@ class _StocksPageState extends State<StocksPage> {
                       child: Column(
                         children: [
                           GridView.builder(
-                            padding: EdgeInsets.all(isMobile ? 12 : 24),
+                            padding: EdgeInsets.all(padding),
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: isMobile ? double.infinity : 340,
-                            childAspectRatio: isMobile ? 3.5 : 2.0,
-                            crossAxisSpacing: isMobile ? 8 : 16,
-                            mainAxisSpacing: isMobile ? 8 : 16,
-                          ),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: isMobile ? 1 : (isTablet ? 2 : 3),
+                              childAspectRatio: isMobile ? 2.6 : (isTablet ? 2.8 : 3.2),
+                              crossAxisSpacing: padding,
+                              mainAxisSpacing: padding,
+                            ),
                           itemCount: stocks.length,
                           itemBuilder: (context, index) {
                             final stock = stocks[index];
@@ -938,7 +944,7 @@ class _StocksPageState extends State<StocksPage> {
                                           ? ClipRRect(
                                               borderRadius: BorderRadius.circular(8),
                                               child: CachedNetworkImage(
-                                                imageUrl: stock.productUrl,
+                                                imageUrl: kIsWeb ? 'https://corsproxy.io/?${Uri.encodeComponent(stock.productUrl)}' : stock.productUrl,
                                                 fit: BoxFit.cover,
                                                 placeholder: (c, u) => Container(color: Colors.white12),
                                                 errorWidget: (c, u, e) => const Icon(Icons.image, size: 20, color: Colors.white24),
@@ -951,30 +957,31 @@ class _StocksPageState extends State<StocksPage> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         mainAxisAlignment: MainAxisAlignment.center,
+                                        spacing: 2,
                                         children: [
-                                          Text(stock.name,
-                                              style: GoogleFonts.inter(
-                                                fontSize: isMobile ? 14 : 15,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.white,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis),
-                                          const SizedBox(height: 4),
+                                          Flexible(
+                                            child: Text(stock.name,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: isMobile ? 13 : 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white,
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis),
+                                          ),
                                           Text(stock.productKey,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: GoogleFonts.inter(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w500,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w400,
                                                 color: Colors.white54,
                                               )),
-                                          const SizedBox(height: 6),
                                           Text('LKR ${stock.sellingValue.toStringAsFixed(2)}',
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: GoogleFonts.inter(
-                                                fontSize: isMobile ? 12 : 13,
+                                                fontSize: isMobile ? 11 : 12,
                                                 fontWeight: FontWeight.w600,
                                                 color: Colors.white70,
                                               )),
@@ -1025,7 +1032,7 @@ class _StocksPageState extends State<StocksPage> {
 }
 
 class _ShimmerBox extends StatefulWidget {
-  const _ShimmerBox({Key? key}) : super(key: key);
+  const _ShimmerBox({super.key});
   @override
   State<_ShimmerBox> createState() => _ShimmerBoxState();
 }
@@ -1042,14 +1049,14 @@ class _ShimmerBoxState extends State<_ShimmerBox> with SingleTickerProviderState
         return ShaderMask(
           shaderCallback: (bounds) {
             return LinearGradient(
-              colors: [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.25), Colors.white.withOpacity(0.1)],
+              colors: [Colors.white.withValues(alpha: 0.1), Colors.white.withValues(alpha: 0.25), Colors.white.withValues(alpha: 0.1)],
               stops: [0.0, 0.5, 1.0],
               begin: Alignment(-1.0 + _ctl.value * 2, 0),
               end: Alignment(1.0 + _ctl.value * 2, 0),
             ).createShader(bounds);
           },
-          child: Container(decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(6))),
           blendMode: BlendMode.srcATop,
+          child: Container(decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(6))),
         );
       },
     );

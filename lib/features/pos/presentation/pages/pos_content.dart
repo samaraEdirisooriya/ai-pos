@@ -65,7 +65,7 @@ class _PosContentState extends State<PosContent> {
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       transitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (dialogContext, a1, a2) {
         return Center(
@@ -125,9 +125,10 @@ class _PosContentState extends State<PosContent> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () async {
-                            if (await canLaunchUrl(workerUrl))
+                            if (await canLaunchUrl(workerUrl)) {
                               await launchUrl(workerUrl,
                                   mode: LaunchMode.externalApplication);
+                            }
                           },
                           child:
                               Text('Open on Phone', style: GoogleFonts.inter()),

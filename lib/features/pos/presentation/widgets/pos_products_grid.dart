@@ -12,9 +12,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/product.dart' as PosProduct;
+import 'package:flutter/foundation.dart';
 import '../../../products/data/models/product_model.dart';
 import '../../../products/data/datasources/product_remote_data_source.dart';
 import '../bloc/pos_bloc.dart';
+import 'package:toastification/toastification.dart';
 
 // Local lightweight model used by POS UI (maps from ProductModel)
 class POSItem {
@@ -46,7 +48,7 @@ class _PosProductsGridState extends State<PosProductsGrid> {
   String _query = '';
   Timer? _debounce;
   int _page = 1;
-  int _limit = 20;
+  final int _limit = 20;
   int _total = 0;
   List<POSItem> _mostUsed = [];
 
@@ -312,7 +314,7 @@ class _PosProductsGridState extends State<PosProductsGrid> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _mostUsed.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final it = _mostUsed[index];
           return GestureDetector(
@@ -320,6 +322,16 @@ class _PosProductsGridState extends State<PosProductsGrid> {
               // map to pos product and add
               final p = PosProduct.Product(id: it.id, name: it.name, category: '', price: it.price, imageUrl: it.imageUrl);
               context.read<PosBloc>().add(AddProductToCart(p));
+              toastification.show(
+                context: context,
+                type: ToastificationType.success,
+                style: ToastificationStyle.flatColored,
+                title: Text('Added to Cart', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                description: Text('${p.name} was added to your cart.', style: GoogleFonts.inter()),
+                alignment: Alignment.topCenter,
+                autoCloseDuration: const Duration(seconds: 2),
+                showProgressBar: false,
+              );
             },
             child: Container(
               width: 120,
@@ -333,7 +345,7 @@ class _PosProductsGridState extends State<PosProductsGrid> {
                 children: [
                   Text(it.name, style: GoogleFonts.inter(fontSize: 11, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const Spacer(),
-                                Text(_lkr.format(it.price), style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w700)),
+                                Text(_lkr.format(it.price), style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
@@ -396,7 +408,7 @@ class _PosProductsGridState extends State<PosProductsGrid> {
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: CachedNetworkImage(
-                        imageUrl: product.imageUrl,
+                        imageUrl: kIsWeb ? 'https://corsproxy.io/?${Uri.encodeComponent(product.imageUrl)}' : product.imageUrl,
                         fit: BoxFit.cover,
                         placeholder: (c, u) => Container(color: Colors.white12),
                         errorWidget: (c, u, e) => Icon(Icons.broken_image, color: Colors.white24, size: isMobile ? 28 : 36),
@@ -450,6 +462,16 @@ class _PosProductsGridState extends State<PosProductsGrid> {
       child: GestureDetector(
         onTap: () {
           context.read<PosBloc>().add(AddProductToCart(posProduct));
+          toastification.show(
+            context: context,
+            type: ToastificationType.success,
+            style: ToastificationStyle.flatColored,
+            title: Text('Added to Cart', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+            description: Text('${posProduct.name} was added to your cart.', style: GoogleFonts.inter()),
+            alignment: Alignment.topCenter,
+            autoCloseDuration: const Duration(seconds: 2),
+            showProgressBar: false,
+          );
         },
         child: card,
       ),

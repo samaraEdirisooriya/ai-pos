@@ -110,9 +110,9 @@ class _SplashScreenState extends State<SplashScreen>
                                 begin: Alignment(-1 - shimmerPos, 0),
                                 end: Alignment(1 - shimmerPos, 0),
                                 colors: [
-                                  Colors.white.withOpacity(0.18),
+                                  Colors.white.withValues(alpha: 0.18),
                                   Colors.white,
-                                  Colors.white.withOpacity(0.18),
+                                  Colors.white.withValues(alpha: 0.18),
                                 ],
                                 stops: const [0.25, 0.5, 0.75],
                               ).createShader(bounds);
@@ -128,7 +128,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 letterSpacing: 1.2,
                                 shadows: [
                                   Shadow(
-                                    color: Colors.black.withOpacity(0.25),
+                                    color: Colors.black.withValues(alpha: 0.25),
                                     blurRadius: 8,
                                     offset: const Offset(0, 4),
                                   ),
@@ -150,7 +150,7 @@ class _SplashScreenState extends State<SplashScreen>
                           style: GoogleFonts.inter(
                             fontSize: taglineFontSize,
                             fontWeight: FontWeight.w400,
-                            color: Colors.white.withOpacity(0.85),
+                            color: Colors.white.withValues(alpha: 0.85),
                           ),
                         ),
                       ),

@@ -81,13 +81,13 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   # This package generates native splash screens for all platforms
-  color: "#1a1a2e"  # Dark blue-black background (matches AppColors.background)
+  color: "#0b0418"  # Dark blue-black background (matches AppColors.background)
   
-  image: assets/icon/app_icon.png
+  image: assets/icon/splash.png
   
   android_12:
-    image: assets/icon/app_icon.png
-    icon_background_color: "#1a1a2e"
+    image: assets/icon/splash.png
+    icon_background_color: "#0b0418"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

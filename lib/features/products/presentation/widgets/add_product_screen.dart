@@ -3,8 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:toastification/toastification.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/product.dart';
 import '../bloc/product_bloc.dart';
 
@@ -101,43 +101,92 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     )
                   ],
                 ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.1),
-                        padding: const EdgeInsets.all(12),
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                    Text('New Product',
-                        style: GoogleFonts.inter(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.5,
-                            color: Colors.white)),
-                    const Spacer(),
-                    if (_isLoading)
-                      const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
-                    else
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: _submit,
-                        child: Text('Save Product', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16)),
-                      ),
-                  ],
+                child: Builder(
+                  builder: (context) {
+                    bool isMobileHeader = MediaQuery.of(context).size.width < 600;
+                    return isMobileHeader
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.close, color: Colors.white),
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: Colors.white.withValues(alpha: 0.1),
+                                      padding: const EdgeInsets.all(12),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Text('New Product',
+                                        style: GoogleFonts.inter(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: -0.5,
+                                            color: Colors.white)),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: _isLoading
+                                    ? const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                    : ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          foregroundColor: Colors.black,
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          elevation: 0,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                        onPressed: _submit,
+                                        child: Text('Save Product', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16)),
+                                      ),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.close, color: Colors.white),
+                                onPressed: () => Navigator.of(context).pop(),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                                  padding: const EdgeInsets.all(12),
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                              Text('New Product',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.5,
+                                      color: Colors.white)),
+                              const Spacer(),
+                              if (_isLoading)
+                                const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                )
+                              else
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  onPressed: _submit,
+                                  child: Text('Save Product', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16)),
+                                ),
+                            ],
+                          );
+                  }
                 ),
               ),
               
@@ -162,7 +211,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             
                             LayoutBuilder(
                               builder: (context, constraints) {
-                                bool isMobile = constraints.maxWidth < 600;
+                                bool isMobile = MediaQuery.of(context).size.width < 600;
                                 return isMobile
                                   ? Column(
                                       children: [
@@ -184,7 +233,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             
                             LayoutBuilder(
                               builder: (context, constraints) {
-                                bool isMobile = constraints.maxWidth < 600;
+                                bool isMobile = MediaQuery.of(context).size.width < 600;
                                 return isMobile
                                   ? Column(
                                       children: [
@@ -206,7 +255,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             
                             LayoutBuilder(
                               builder: (context, constraints) {
-                                bool isMobile = constraints.maxWidth < 600;
+                                bool isMobile = MediaQuery.of(context).size.width < 600;
                                 return isMobile
                                   ? Column(
                                       children: [
@@ -265,7 +314,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   ),
                                   clipBehavior: Clip.antiAlias,
                                   child: CachedNetworkImage(
-                                    imageUrl: url,
+                                    imageUrl: kIsWeb ? 'https://corsproxy.io/?${Uri.encodeComponent(url)}' : url,
                                     fit: BoxFit.contain,
                                     placeholder: (c, u) => Center(child: CircularProgressIndicator(color: Colors.black)),
                                     errorWidget: (c, u, e) => Container(

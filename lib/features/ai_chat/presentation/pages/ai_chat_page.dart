@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:pos_ai/core/theme/app_colors.dart';
 import 'package:pos_ai/features/ai_chat/presentation/widgets/ai_chat_widget.dart';
 
 /// AI Chat page connected to the backend AI endpoints with Vectorize.

@@ -30,36 +30,72 @@ class PosPanel extends StatelessWidget {
             _buildHandle(context),
             const Divider(color: AppColors.glassWhite, height: 1),
             Expanded(
-              child: SingleChildScrollView(
-                controller: scrollController,
-                child: Container(
-                  height: (MediaQuery.of(context).size.height * 0.9 - 81).clamp(0.0, double.infinity), // Clamped: never negative
-                  padding: const EdgeInsets.all(AppConstants.paddingLarge),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Products Area (2/3 width on desktop)
-                      const Expanded(
-                        flex: 2,
-                        child: PosProductsGrid(),
+              child: Builder(
+                builder: (context) {
+                  bool isMobile = MediaQuery.of(context).size.width < 800;
+                  if (isMobile) {
+                    return DefaultTabController(
+                      length: 2,
+                      child: Column(
+                        children: [
+                          TabBar(
+                            labelColor: AppColors.primary,
+                            unselectedLabelColor: AppColors.textSecondary,
+                            indicatorColor: AppColors.primary,
+                            labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                            tabs: [
+                              const Tab(text: 'Products'),
+                              BlocBuilder<PosBloc, PosState>(
+                                builder: (context, state) {
+                                  final itemCount = state.cartItems.fold<int>(0, (sum, item) => sum + item.quantity);
+                                  return Tab(text: itemCount > 0 ? 'Cart ($itemCount)' : 'Cart');
+                                },
+                              ),
+                            ],
+                          ),
+                          Expanded(
+                            child: TabBarView(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(AppConstants.paddingLarge),
+                                  child: const PosProductsGrid(),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(AppConstants.paddingLarge),
+                                  child: const PosCartSection(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: AppConstants.paddingLarge),
-                      // Cart Area (1/3 width on desktop)
-                      Expanded(
-                        flex: 1,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            if (constraints.maxWidth < 300) {
-                              // If too narrow, maybe hide or adjust, but responsive_builder in main handles it mostly.
-                              return const PosCartSection();
-                            }
-                            return const PosCartSection();
-                          }
-                        ),
+                    );
+                  }
+                  
+                  return SingleChildScrollView(
+                    controller: scrollController,
+                    child: Container(
+                      height: (MediaQuery.of(context).size.height * 0.9 - 81).clamp(0.0, double.infinity), // Clamped: never negative
+                      padding: const EdgeInsets.all(AppConstants.paddingLarge),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Products Area (2/3 width on desktop)
+                          const Expanded(
+                            flex: 2,
+                            child: PosProductsGrid(),
+                          ),
+                          const SizedBox(width: AppConstants.paddingLarge),
+                          // Cart Area (1/3 width on desktop)
+                          const Expanded(
+                            flex: 1,
+                            child: PosCartSection(),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                }
               ),
             )
           ],

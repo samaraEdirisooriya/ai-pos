@@ -126,7 +126,7 @@ class _SupplierDetailPageState extends State<SupplierDetailPage> {
                         ..._history.map((h) => Container(
                           margin: const EdgeInsets.symmetric(vertical: 8),
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0,4))]),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0,4))]),
                           child: Row(children: [
                             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Text(h['product_name'] ?? h['product_id'] ?? '', style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w800)),
@@ -139,7 +139,7 @@ class _SupplierDetailPageState extends State<SupplierDetailPage> {
                               Text('Price: ${h['retail_price'] ?? '-'}', style: GoogleFonts.inter(color: Colors.black54)),
                             ])
                           ]),
-                        )).toList(),
+                        )),
                       ]),
                     ),
                   ),

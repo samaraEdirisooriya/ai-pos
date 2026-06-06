@@ -148,7 +148,7 @@ class _PosCartSectionState extends State<PosCartSection> {
                       : ListView.separated(
                           shrinkWrap: true,
                           itemCount: _clientSuggestions.length,
-                          separatorBuilder: (_, __) => const Divider(),
+                          separatorBuilder: (_, _) => const Divider(),
                           itemBuilder: (context, i) {
                             final c = _clientSuggestions[i];
                             return ListTile(
@@ -185,7 +185,7 @@ class _PosCartSectionState extends State<PosCartSection> {
         if (state.cartItems.isEmpty) {
           return Center(
             child: SingleChildScrollView(
-              child: Container(
+              child: SizedBox(
                 height: 200,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -244,6 +244,7 @@ class _PosCartSectionState extends State<PosCartSection> {
 
   Widget _cartRow(BuildContext context, dynamic item) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 32,
@@ -268,7 +269,9 @@ class _PosCartSectionState extends State<PosCartSection> {
                   overflow: TextOverflow.ellipsis),
                 Text(_lkr.format(item.product.price),
                   style: GoogleFonts.inter(
-                    fontSize: 10, color: Colors.white70)),
+                    fontSize: 10, color: Colors.white70),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
@@ -307,7 +310,6 @@ class _PosCartSectionState extends State<PosCartSection> {
           ),
         ),
       ],
-      mainAxisSize: MainAxisSize.min,
     );
   }
 
@@ -392,7 +394,9 @@ class _PosCartSectionState extends State<PosCartSection> {
                           Flexible(
                             child: Text(_lkr.format(state.subtotal),
                                 style: GoogleFonts.inter(
-                                    fontSize: 11, color: Colors.white)),
+                                    fontSize: 11, color: Colors.white),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
                           ),
                         ],
                       ),
@@ -406,7 +410,9 @@ class _PosCartSectionState extends State<PosCartSection> {
                           Flexible(
                             child: Text('-${_lkr.format(state.discount)}',
                                 style: GoogleFonts.inter(
-                                    fontSize: 11, color: Colors.greenAccent)),
+                                    fontSize: 11, color: Colors.greenAccent),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
                           ),
                         ],
                       ),
@@ -424,7 +430,9 @@ class _PosCartSectionState extends State<PosCartSection> {
                                 style: GoogleFonts.inter(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
-                                    color: Colors.white)),
+                                    color: Colors.white),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
                           ),
                         ],
                       ),
@@ -521,7 +529,7 @@ class _PosCartSectionState extends State<PosCartSection> {
               Positioned.fill(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                  child: Container(color: Colors.black.withOpacity(0.35)),
+                  child: Container(color: Colors.black.withValues(alpha: 0.35)),
                 ),
               ),
               Center(
@@ -564,7 +572,7 @@ class _PosCartSectionState extends State<PosCartSection> {
             Positioned.fill(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                child: Container(color: Colors.black.withOpacity(0.35)),
+                child: Container(color: Colors.black.withValues(alpha: 0.35)),
               ),
             ),
             Center(

@@ -15,8 +15,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/dashboard_service.dart';
 import '../../../ai_chat/presentation/pages/ai_chat_page.dart';
 import '../../../pos/presentation/pages/pos_content.dart';
-import '../../../pos/presentation/bloc/pos_bloc.dart';
-import '../../../pos/presentation/pages/pos_panel.dart';
 import '../../../dashboard/presentation/pages/about_page.dart';
 
 // Import Products feature
@@ -70,6 +68,7 @@ class _MainLayoutPageState extends State<MainLayoutPage>
   // Bottom panel height states
   double? _panelCurrentHeight;
   bool _isFullScreen = false;
+  bool _isMinimized = false; // New: track minimized state
 
   // Dashboard data
   late DashboardService _dashboardService;
@@ -132,6 +131,7 @@ class _MainLayoutPageState extends State<MainLayoutPage>
   void _resetPanel() {
     setState(() {
       _isFullScreen = false;
+      _isMinimized = false;
       _panelCurrentHeight = null;
     });
   }
@@ -140,14 +140,19 @@ class _MainLayoutPageState extends State<MainLayoutPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxHeight < 10) return const SizedBox.shrink();
-          return ResponsiveBuilder(
-            builder: (context, sizingInformation) {
-              bool isMobile =
-                  sizingInformation.deviceScreenType == DeviceScreenType.mobile;
-              final topNavH = isMobile ? 56.0 : 64.0;
+      body: SafeArea(
+        left: true,
+        right: true,
+        top: true,
+        bottom: false, // bottom handled by content
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxHeight < 10) return const SizedBox.shrink();
+            return ResponsiveBuilder(
+              builder: (context, sizingInformation) {
+                bool isMobile =
+                    sizingInformation.deviceScreenType == DeviceScreenType.mobile;
+                final topNavH = isMobile ? 56.0 : 64.0;
               return Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -175,15 +180,21 @@ class _MainLayoutPageState extends State<MainLayoutPage>
                               // Use fixed minimum heights to prevent internal content scaling/errors
                               final minH = isMobile ? 180.0 : 320.0;
                               
-                              // halfH logic: try to split, but never go below minH
+                              // Define 3 snap positions:
+                              // 1. Minimized: ~80px (just the handle bar)
+                              // 2. Middle: 50% of screen
+                              // 3. Full: entire screen
+                              final minimizedH = 80.0;
                               final halfH = max(minH, maxH * 0.5);
+                              final fullH = max(maxH, minH);
                               
-                              // target default: depends on screen state, but respects minH
-                              final targetDefaultH = _isFullScreen ? max(maxH, minH) : halfH;
+                              // target default: depends on state
+                              final targetDefaultH = _isMinimized 
+                                ? minimizedH 
+                                : (_isFullScreen ? fullH : halfH);
                               
-                              // The panel height: uses manual drag height if set, otherwise defaults to full or half.
-                              // It is NO LONGER clamped to maxH, allowing it to "overlap" when the screen is small.
-                              final currentH = (_panelCurrentHeight ?? targetDefaultH).clamp(minH, double.infinity);
+                              // The panel height: uses manual drag height if set, otherwise defaults
+                              final currentH = (_panelCurrentHeight ?? targetDefaultH).clamp(minimizedH, double.infinity);
 
                               return Stack(
                                 clipBehavior: Clip.none, // Essential to allow overlapping/sliding "behind" or above boundaries
@@ -205,27 +216,46 @@ class _MainLayoutPageState extends State<MainLayoutPage>
                                       onVerticalDragUpdate: (details) {
                                         setState(() {
                                           final newH = currentH - details.delta.dy;
-                                          _panelCurrentHeight = newH.clamp(minH, double.infinity);
-                                          _isFullScreen = _panelCurrentHeight! >= maxH - 20;
+                                          _panelCurrentHeight = newH.clamp(minimizedH, double.infinity);
+                                          _isFullScreen = _panelCurrentHeight! >= fullH - 20;
+                                          _isMinimized = _panelCurrentHeight! <= minimizedH + 10;
                                         });
                                       },
                                       onVerticalDragEnd: (details) {
                                         setState(() {
                                           final velocity = details.primaryVelocity ?? 0.0;
-                                          final snapFullH = max(maxH, minH);
-                                          if (velocity < -200 || currentH > halfH + 50) {
-                                            _isFullScreen = true;
-                                            _panelCurrentHeight = snapFullH;
-                                          } else if (velocity > 200 || currentH < snapFullH - 50) {
+                                          
+                                          // Snap logic: velocity > 300 is easy small gesture
+                                          if (velocity > 300) {
+                                            // Snap down (to minimized)
+                                            _isMinimized = true;
                                             _isFullScreen = false;
-                                            _panelCurrentHeight = halfH;
+                                            _panelCurrentHeight = minimizedH;
+                                          } else if (velocity < -300) {
+                                            // Snap up (to full)
+                                            _isFullScreen = true;
+                                            _isMinimized = false;
+                                            _panelCurrentHeight = fullH;
                                           } else {
-                                            if ((currentH - halfH) > (snapFullH - currentH)) {
-                                              _isFullScreen = true;
-                                              _panelCurrentHeight = snapFullH;
-                                            } else {
+                                            // Position-based snapping (3-way)
+                                            final middle1 = minimizedH + (halfH - minimizedH) / 2;
+                                            final middle2 = halfH + (fullH - halfH) / 2;
+                                            
+                                            if (currentH < middle1) {
+                                              // Closer to minimized
+                                              _isMinimized = true;
+                                              _isFullScreen = false;
+                                              _panelCurrentHeight = minimizedH;
+                                            } else if (currentH < middle2) {
+                                              // Closer to half
+                                              _isMinimized = false;
                                               _isFullScreen = false;
                                               _panelCurrentHeight = halfH;
+                                            } else {
+                                              // Closer to full
+                                              _isFullScreen = true;
+                                              _isMinimized = false;
+                                              _panelCurrentHeight = fullH;
                                             }
                                           }
                                         });
@@ -280,6 +310,7 @@ class _MainLayoutPageState extends State<MainLayoutPage>
             },
           );
         },
+        ),
       ),
     );
   }
@@ -339,7 +370,8 @@ class _MainLayoutPageState extends State<MainLayoutPage>
           PopupMenuButton<String>(
             icon: CircleAvatar(
               radius: 14,
-              backgroundImage: CachedNetworkImageProvider('https://i.pravatar.cc/100?img=33'),
+              backgroundColor: Colors.white24,
+              child: const Icon(Icons.person, size: 16, color: Colors.white),
             ),
           itemBuilder: (context) => [
             PopupMenuItem<String>(
@@ -426,7 +458,8 @@ class _MainLayoutPageState extends State<MainLayoutPage>
             const SizedBox(width: 12),
             CircleAvatar(
               radius: 16,
-              backgroundImage: CachedNetworkImageProvider('https://i.pravatar.cc/100?img=33'),
+              backgroundColor: Colors.white24,
+              child: const Icon(Icons.person, size: 18, color: Colors.white),
             ),
             const SizedBox(width: 12),
             IconButton(
